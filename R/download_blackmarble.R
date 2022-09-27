@@ -90,7 +90,9 @@ read_bm_monthly_csv <- function(year, month_day_start){
   return(df_out)
 }
 
-create_monthly_dataset_name_df <- function(year, month_day_start){
+create_monthly_dataset_name_df <- function(all = TRUE,
+                                           year = NULL, 
+                                           month_day_start = NULL){
   
   month_param_df <- cross_df(list(year            = 2012:2022,
                                   month_day_start = c("001", "032", "061", "092", "122", "153", "183", "214", "245", "275", "306", "336")))
@@ -125,4 +127,24 @@ download_raster <- function(file_name, bearer){
   return(r)
 }
 
+month_start_day_to_month <- function(x){
+  
+  month <- NA
+  
+  if(x == "001") month <- "01"
+  if(x == "032") month <- "02"
+  if(x == "061") month <- "03"
+  if(x == "092") month <- "04"
+  if(x == "122") month <- "05"
+  if(x == "153") month <- "06"
+  if(x == "183") month <- "07"
+  if(x == "214") month <- "08"
+  if(x == "245") month <- "09"
+  if(x == "275") month <- "10"
+  if(x == "306") month <- "11"
+  if(x == "336") month <- "12"
+  
+  return(month)
+}
 
+month_start_day_to_month <- Vectorize(month_start_day_to_month)
