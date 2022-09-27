@@ -74,7 +74,7 @@ read_bm_monthly_csv <- function(year, month_day_start){
   
   df_out <- tryCatch(
     {
-      df <- read.csv(paste0("https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/5000/VNP46A3/",year,"/",month,".csv"))
+      df <- read.csv(paste0("https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/5000/VNP46A3/",year,"/",month_day_start,".csv"))
       
       df$year <- year
       df$month_day_start <- month_day_start
