@@ -71,7 +71,6 @@ file_to_raster <- function(f){
 
 read_bm_monthly_csv <- function(year, month_day_start){
   print(paste("Reading:", year, month_day_start))
-  
   df_out <- tryCatch(
     {
       df <- read.csv(paste0("https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/5000/VNP46A3/",year,"/",month_day_start,".csv"))
@@ -95,11 +94,12 @@ create_monthly_dataset_name_df <- function(all = TRUE,
                                            month_day_start = NULL){
   
   month_param_df <- cross_df(list(year            = 2012:2022,
-                                  month_day_start = c("001", "032", "061", "092", "122", "153", "183", "214", "245", "275", "306", "336")))
+                                  month_day_start = c("001", "032", "061", "092", "122", "153", "183", "214", "245", "275", "306", "336",
+                                                      "060", "091", "121", "152", "182", "213", "244", "274", "305", "335")))
   
-  monthly_files_df <- future_map2_dfr(month_param_df$year,
-                                      month_param_df$month_day_start,
-                                      read_bm_monthly_csv)
+  monthly_files_df <- map2_dfr(month_param_df$year,
+                               month_param_df$month_day_start,
+                               read_bm_monthly_csv)
   
   return(monthly_files_df)
 }
@@ -132,16 +132,37 @@ month_start_day_to_month <- function(x){
   month <- NA
   
   if(x == "001") month <- "01"
+  
   if(x == "032") month <- "02"
+  
+  if(x == "060") month <- "03"
   if(x == "061") month <- "03"
+  
+  if(x == "091") month <- "04"
   if(x == "092") month <- "04"
+  
+  if(x == "121") month <- "05"
   if(x == "122") month <- "05"
+  
+  if(x == "152") month <- "06"
   if(x == "153") month <- "06"
+  
+  if(x == "182") month <- "07"
   if(x == "183") month <- "07"
+  
+  if(x == "213") month <- "08"
   if(x == "214") month <- "08"
+  
+  if(x == "244") month <- "09"
   if(x == "245") month <- "09"
+  
+  if(x == "274") month <- "10"
   if(x == "275") month <- "10"
+  
+  if(x == "305") month <- "11"
   if(x == "306") month <- "11"
+  
+  if(x == "335") month <- "12"
   if(x == "336") month <- "12"
   
   return(month)
