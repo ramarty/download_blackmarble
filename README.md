@@ -13,7 +13,7 @@ Eventually the package will be available via `devtools`; for now, load the packa
 # install.packages(rhdf5)
 # install.packages(raster)
 
-source(https://raw.githubusercontent.com/ramarty/download_blackmarble/main/R/download_blackmarble.R)
+source("https://raw.githubusercontent.com/ramarty/download_blackmarble/main/R/download_blackmarble.R")
 ```
 
 ## Bearer Token
