@@ -8,6 +8,59 @@ library(stringr)
 library(rhdf5)
 library(raster)
 library(dplyr)
+library(sf)
+
+month_start_day_to_month <- function(x){
+  
+  month <- NA
+  
+  if(x == "001") month <- "01"
+  
+  if(x == "032") month <- "02"
+  
+  if(x == "060") month <- "03"
+  if(x == "061") month <- "03"
+  
+  if(x == "091") month <- "04"
+  if(x == "092") month <- "04"
+  
+  if(x == "121") month <- "05"
+  if(x == "122") month <- "05"
+  
+  if(x == "152") month <- "06"
+  if(x == "153") month <- "06"
+  
+  if(x == "182") month <- "07"
+  if(x == "183") month <- "07"
+  
+  if(x == "213") month <- "08"
+  if(x == "214") month <- "08"
+  
+  if(x == "244") month <- "09"
+  if(x == "245") month <- "09"
+  
+  if(x == "274") month <- "10"
+  if(x == "275") month <- "10"
+  
+  if(x == "305") month <- "11"
+  if(x == "306") month <- "11"
+  
+  if(x == "335") month <- "12"
+  if(x == "336") month <- "12"
+  
+  return(month)
+}
+
+month_start_day_to_month <- Vectorize(month_start_day_to_month)
+
+pad3 <- function(x){
+  if(nchar(x) == 1) out <- paste0("00", x)
+  if(nchar(x) == 2) out <- paste0("0", x)
+  if(nchar(x) == 3) out <- paste0(x)
+  return(out)
+}
+pad3 <- Vectorize(pad3)
+
 
 file_to_raster <- function(f){
   # Converts h5 file to raster.
@@ -159,11 +212,12 @@ download_raster <- function(file_name, bearer){
   
   temp_dir <- tempdir()
   
-  year <- file_name %>% substring(10,13)
-  day  <- file_name %>% substring(14,16)
+  year       <- file_name %>% substring(10,13)
+  day        <- file_name %>% substring(14,16)
+  product_id <- file_name %>% substring(1,7)
   
   wget_command <- paste0("wget -e robots=off -m -np .html,.tmp -nH --cut-dirs=3 ",
-                         "'https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/5000/VNP46A3/", year, "/", day, "/", file_name,"'",
+                         "'https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/5000/",product_id,"/", year, "/", day, "/", file_name,"'",
                          " --header 'Authorization: Bearer ",
                          bearer,
                          "' -P ",
@@ -171,63 +225,13 @@ download_raster <- function(file_name, bearer){
   
   system(wget_command)
   
-  r <- file_to_raster(file.path(temp_dir, "VNP46A3", year, day, file_name))
+  r <- file_to_raster(file.path(temp_dir, product_id, year, day, file_name))
   
-  unlink(file.path(temp_dir, "VNP46A3"), recursive = T)
+  unlink(file.path(temp_dir, product_id), recursive = T)
   
   return(r)
 }
 
-month_start_day_to_month <- function(x){
-  
-  month <- NA
-  
-  if(x == "001") month <- "01"
-  
-  if(x == "032") month <- "02"
-  
-  if(x == "060") month <- "03"
-  if(x == "061") month <- "03"
-  
-  if(x == "091") month <- "04"
-  if(x == "092") month <- "04"
-  
-  if(x == "121") month <- "05"
-  if(x == "122") month <- "05"
-  
-  if(x == "152") month <- "06"
-  if(x == "153") month <- "06"
-  
-  if(x == "182") month <- "07"
-  if(x == "183") month <- "07"
-  
-  if(x == "213") month <- "08"
-  if(x == "214") month <- "08"
-  
-  if(x == "244") month <- "09"
-  if(x == "245") month <- "09"
-  
-  if(x == "274") month <- "10"
-  if(x == "275") month <- "10"
-  
-  if(x == "305") month <- "11"
-  if(x == "306") month <- "11"
-  
-  if(x == "335") month <- "12"
-  if(x == "336") month <- "12"
-  
-  return(month)
-}
-
-month_start_day_to_month <- Vectorize(month_start_day_to_month)
-
-pad3 <- function(x){
-  if(nchar(x) == 1) out <- paste0("00", x)
-  if(nchar(x) == 2) out <- paste0("0", x)
-  if(nchar(x) == 3) out <- paste0(x)
-  return(out)
-}
-pad3 <- Vectorize(pad3)
 
 #' Make Black Marble Raster
 #'
@@ -243,6 +247,7 @@ pad3 <- Vectorize(pad3)
 bm_mk_raster <- function(loc_sf,
                          product_id,
                          time,
+                         bearer_token,
                          mosaic = T,
                          mask = T){
   
@@ -260,23 +265,28 @@ bm_mk_raster <- function(loc_sf,
   # Determine tiles to download ------------------------------------------------
   tile_ids_rx <- grid_use_sf$TileID %>% paste(collapse = "|")
   
+  tiles_df <- read.csv(paste0("https://raw.githubusercontent.com/ramarty/download_blackmarble/main/data/",product_id,".csv"))
+  tiles_df <- tiles_df[tiles_df$name %>% str_detect(tile_ids_rx),]
+  
+  ## Create year_month variable
   if(product_id == "VNP46A3"){
-    tiles_df <- read.csv("https://raw.githubusercontent.com/ramarty/download_blackmarble/main/data/monthly_datasets.csv")
     
-    tiles_df <- tiles_df[tiles_df$name %>% str_detect(tile_ids_rx),]
-    
-    ## Create year_month variable
     tiles_df <- tiles_df %>%
-      mutate(month_day_start = month_day_start %>% pad3(),
-             month = month_day_start %>% month_start_day_to_month(),
-             year_month = paste0(year, "-", month))
+      mutate(day = day %>% pad3(),
+             month = day %>% month_start_day_to_month(),
+             time = paste0(year, "-", month))
+  }
+  
+  if(product_id == "VNP46A4"){
+    tiles_df <- tiles_df %>%
+      mutate(time = year)
   }
   
   # Download data --------------------------------------------------------------
-  tiles_download_df <- tiles_df[tiles_df$year_month %in% time,]
+  tiles_download_df <- tiles_df[tiles_df$time %in% time,]
   
   r_list <- lapply(tiles_download_df$name, function(name_i){
-    download_raster(name_i, BEARER)
+    download_raster(name_i, bearer_token)
   })
   
   # Mosaic/mask ----------------------------------------------------------------
