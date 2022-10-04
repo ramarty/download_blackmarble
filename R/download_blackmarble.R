@@ -244,7 +244,8 @@ download_raster <- function(file_name, bearer){
 #' @param mask Mask final raster to `loc_sf`.
 #'
 #' @export
-bm_mk_raster <- function(loc_sf,
+bm_mk_raster <- function(loc_sf = NULL,
+                         tile_ids = NULL,
                          product_id,
                          time,
                          bearer,
@@ -252,19 +253,35 @@ bm_mk_raster <- function(loc_sf,
                          mask = T){
   
   # Checks ---------------------------------------------------------------------
-  if(nrow(loc_sf) > 1){
-    stop(paste0("loc_sf is ", nrow(loc_sf), " rows; must be 1 row. Dissolve polygon into 1 row."))
+  if(is.null(loc_sf) & is.null(tile_ids)){
+    stop("Either loc_sf or tile_ids must be specified")
+  }
+  
+  if(!is.null(loc_sf) & !is.null(tile_ids)){
+    stop("Both loc_sf and tile_ids cannot be specified; only one can be specified")
+  }
+  
+  if(!is.null(loc_sf)){
+    if(nrow(loc_sf) > 1){
+      stop(paste0("loc_sf is ", nrow(loc_sf), " rows; must be 1 row. Dissolve polygon into 1 row."))
+    }
   }
   
   # Determine grids to download ------------------------------------------------
-  grid_sf <- read_sf("https://raw.githubusercontent.com/ramarty/download_blackmarble/main/data/blackmarbletiles.geojson")
-  
-  inter <- st_intersects(grid_sf, loc_sf, sparse = F) %>% as.vector()
-  grid_use_sf <- grid_sf[inter,]
+  if(is.null(loc_sf)){
+    
+    tile_ids_rx <- tile_ids %>% paste(collapse = "|")
+    
+  } else{
+    grid_sf <- read_sf("https://raw.githubusercontent.com/ramarty/download_blackmarble/main/data/blackmarbletiles.geojson")
+    
+    inter <- st_intersects(grid_sf, loc_sf, sparse = F) %>% as.vector()
+    grid_use_sf <- grid_sf[inter,]
+    
+    tile_ids_rx <- grid_use_sf$TileID %>% paste(collapse = "|")
+  }
   
   # Determine tiles to download ------------------------------------------------
-  tile_ids_rx <- grid_use_sf$TileID %>% paste(collapse = "|")
-  
   tiles_df <- read.csv(paste0("https://raw.githubusercontent.com/ramarty/download_blackmarble/main/data/",product_id,".csv"))
   tiles_df <- tiles_df[tiles_df$name %>% str_detect(tile_ids_rx),]
   
