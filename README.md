@@ -18,7 +18,12 @@ source("https://raw.githubusercontent.com/ramarty/download_blackmarble/main/R/do
 
 ## Bearer Token
 
-INSTRUCTIONS HERE ON GETTING BEARER TOKEN. ESSENTIALLY LOGIN TO LAADS ARCHIVE AND GET FROM THERE.
+The function requires using a **Bearer Token**; to obtain a token, follow the below steps:
+
+1. Go to the [NASA LAADS Archive](https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/5000/VNP46A3/)
+2. Click "Login" (bottom on top right); create an account if needed.
+3. Click "See wget Download Command" (bottom near top, in the middle)
+4. After clicking, you will see text that can be used to download data. The "Bearer" token will be a long string in red.
 
 ## Examples
 

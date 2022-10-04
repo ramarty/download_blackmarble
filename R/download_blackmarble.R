@@ -6,6 +6,7 @@ library(furrr)
 library(stringr)
 library(rhdf5)
 library(raster)
+library(dplyr)
 
 file_to_raster <- function(f){
   # Converts h5 file to raster.
@@ -177,3 +178,78 @@ pad3 <- function(x){
   return(out)
 }
 pad3 <- Vectorize(pad3)
+
+#' Make Black Marble Raster
+#'
+#' Make raster from Black Marble data
+#'
+#' @param loc_sf `sf` object indicating location to query. If `"all"`, downloads data for whole world
+#' @param product_id Black Marble product ID. `VNP46A3` for monthly.
+#' @param time Time to query (depends on `product_id`). For annual data, year (e.g., `2012`). For monthly data, year and month (e.g., `2012-01`). For daily data, date (e.g., `2012-01-01`).
+#' @param mosiac If multiple tiles needed to be downloaded to cover `loc_sf`, mosaic them together.
+#' @param mask Mask final raster to `loc_sf`.
+#'
+#' @export
+bm_mk_raster <- function(loc_sf,
+                         product_id,
+                         time,
+                         mosaic = T,
+                         mask = T){
+  
+  # Checks ---------------------------------------------------------------------
+  if(nrow(loc_sf) > 1){
+    stop(paste0("loc_sf is ", nrow(loc_sf), " rows; must be 1 row. Dissolve polygon into 1 row."))
+  }
+  
+  # Determine grids to download ------------------------------------------------
+  grid_sf <- read_sf("https://raw.githubusercontent.com/ramarty/download_blackmarble/main/data/blackmarbletiles.geojson")
+  
+  inter <- st_intersects(grid_sf, loc_sf, sparse = F) %>% as.vector()
+  grid_use_sf <- grid_sf[inter,]
+  
+  # Determine tiles to download ------------------------------------------------
+  tile_ids_rx <- grid_use_sf$TileID %>% paste(collapse = "|")
+  
+  if(product_id == "VNP46A3"){
+    tiles_df <- read.csv("https://raw.githubusercontent.com/ramarty/download_blackmarble/main/data/monthly_datasets.csv")
+    
+    tiles_df <- tiles_df[tiles_df$name %>% str_detect(tile_ids_rx),]
+    
+    ## Create year_month variable
+    tiles_df <- tiles_df %>%
+      mutate(month_day_start = month_day_start %>% pad3(),
+             month = month_day_start %>% month_start_day_to_month(),
+             year_month = paste0(year, "-", month))
+  }
+  
+  # Download data --------------------------------------------------------------
+  tiles_download_df <- tiles_df[tiles_df$year_month %in% time,]
+  
+  r_list <- lapply(tiles_download_df$name, function(name_i){
+    download_raster(name_i, BEARER)
+  })
+  
+  # Mosaic/mask ----------------------------------------------------------------
+  if(mosaic){
+    
+    ## If just one file, use the one file; otherwise, mosaic
+    if(length(r_list) == 1){
+      r_out <- r_list[[1]]
+    } else{
+      
+      names(r_list)    <- NULL
+      r_list$fun       <- max
+      
+      r_out <- do.call(raster::mosaic, r_list) 
+    }
+    
+    ## Mask (only mask if mosaiced)
+    if(mask){
+      r_out <- r_out %>% crop(loc_sf) %>% mask(loc_sf)
+    }
+  } else{
+    r_out <- r_list
+  }
+  
+  return(r_out)
+}
