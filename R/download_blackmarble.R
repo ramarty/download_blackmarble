@@ -247,7 +247,7 @@ download_raster <- function(file_name, bearer){
 bm_mk_raster <- function(loc_sf,
                          product_id,
                          time,
-                         bearer_token,
+                         bearer,
                          mosaic = T,
                          mask = T){
   
@@ -286,7 +286,7 @@ bm_mk_raster <- function(loc_sf,
   tiles_download_df <- tiles_df[tiles_df$time %in% time,]
   
   r_list <- lapply(tiles_download_df$name, function(name_i){
-    download_raster(name_i, bearer_token)
+    download_raster(name_i, bearer)
   })
   
   # Mosaic/mask ----------------------------------------------------------------
