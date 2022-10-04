@@ -1,5 +1,6 @@
 # TODO:
 # 1. Sys.Date(), for day/month to check for downloading data.
+# 2. Yearly datasets (so don't have to recreate all of them?)
 
 library(purrr)
 library(furrr)
@@ -70,19 +71,21 @@ file_to_raster <- function(f){
   return(outr)
 }
 
-read_bm_monthly_csv <- function(year, month_day_start){
-  print(paste("Reading:", year, month_day_start))
+read_bm_csv <- function(year, 
+                        day,
+                        product_id){
+  print(paste0("Reading: ", product_id, "/", year, "/", day))
   df_out <- tryCatch(
     {
-      df <- read.csv(paste0("https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/5000/VNP46A3/",year,"/",month_day_start,".csv"))
+      df <- read.csv(paste0("https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/5000/",product_id,"/",year,"/",day,".csv"))
       
       df$year <- year
-      df$month_day_start <- month_day_start
+      df$day <- day
       
       df
     },
     error = function(e){
-      warning(paste0("Error with year: ", year, "; month_day_start: ", month_day_start))
+      warning(paste0("Error with year: ", year, "; day: ", day))
       data.frame(NULL)
     }
   )
@@ -90,19 +93,66 @@ read_bm_monthly_csv <- function(year, month_day_start){
   return(df_out)
 }
 
-create_monthly_dataset_name_df <- function(all = TRUE,
-                                           year = NULL, 
-                                           month_day_start = NULL){
+create_dataset_name_df <- function(product_id,
+                                   all = TRUE,
+                                   years = NULL, 
+                                   months = NULL,
+                                   days = NULL){
   
-  month_param_df <- cross_df(list(year            = 2012:2022,
-                                  month_day_start = c("001", "032", "061", "092", "122", "153", "183", "214", "245", "275", "306", "336",
-                                                      "060", "091", "121", "152", "182", "213", "244", "274", "305", "335")))
+  #### Determine end year
+  year_end <- Sys.Date() %>% 
+    substring(1,4) %>% 
+    as.numeric()
   
-  monthly_files_df <- map2_dfr(month_param_df$year,
-                               month_param_df$month_day_start,
-                               read_bm_monthly_csv)
+  #### Make parameter dataframe
+  if(product_id %in% c("VNP46A1", "VNP46A2")){
+    param_df <- cross_df(list(year = 2012:year_end,
+                              day  = pad3(1:366)))
+  }
   
-  return(monthly_files_df)
+  if(product_id == "VNP46A3"){
+    param_df <- cross_df(list(year            = 2012:year_end,
+                              day = c("001", "032", "061", "092", "122", "153", "183", "214", "245", "275", "306", "336",
+                                      "060", "091", "121", "152", "182", "213", "244", "274", "305", "335")))
+  }
+  
+  if(product_id == "VNP46A4"){
+    param_df <- cross_df(list(year = 2012:year_end,
+                              day  = "001"))
+  }
+  
+  #### Add month if daily or monthly data
+  if(product_id %in% c("VNP46A1", "VNP46A2", "VNP46A3")){
+    
+    param_df <- param_df %>%
+      dplyr::mutate(month = day %>% 
+                      month_start_day_to_month() %>%
+                      as.numeric())
+    
+  }
+  
+  #### Subset time period
+  ## Year
+  if(!is.null(years)){
+    param_df <- param_df[param_df$year %in% years,]
+  }
+  
+  ## Month
+  if(product_id %in% c("VNP46A1", "VNP46A2", "VNP46A3")){
+    
+    if(!is.null(months)){
+      param_df <- param_df[as.numeric(param_df$month) %in% as.numeric(months),]
+    }
+    
+  }
+  
+  #### Create data
+  files_df <- map2_dfr(param_df$year,
+                       param_df$day,
+                       read_bm_csv,
+                       product_id)
+  
+  return(files_df)
 }
 
 download_raster <- function(file_name, bearer){
