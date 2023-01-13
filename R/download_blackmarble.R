@@ -143,6 +143,8 @@ read_bm_csv <- function(year,
     }
   )
   
+  Sys.sleep(0.1)
+  
   return(df_out)
 }
 
