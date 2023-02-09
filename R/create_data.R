@@ -3,7 +3,7 @@
 if(F){
   
   # Monthly: VNP46A3 -----------------------------------------------------------
-  for(year in 2012:2022){
+  for(year in 2022:2023){
     VNP46A3_df <- create_dataset_name_df(product_id = "VNP46A3",
                                          all = T, 
                                          years = year)
