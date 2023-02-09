@@ -53,6 +53,13 @@ month_start_day_to_month <- function(x){
 
 month_start_day_to_month <- Vectorize(month_start_day_to_month)
 
+pad2 <- function(x){
+  if(nchar(x) == 1) out <- paste0("0", x)
+  if(nchar(x) == 2) out <- paste0(x)
+  return(out)
+}
+pad2 <- Vectorize(pad2)
+
 pad3 <- function(x){
   if(nchar(x) == 1) out <- paste0("00", x)
   if(nchar(x) == 2) out <- paste0("0", x)
