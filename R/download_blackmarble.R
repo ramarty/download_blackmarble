@@ -206,6 +206,10 @@ create_dataset_name_df <- function(product_id,
       param_df <- param_df[as.numeric(param_df$month) %in% as.numeric(months),]
     }
     
+    if(!is.null(days)){
+      param_df <- param_df[as.numeric(param_df$day) %in% as.numeric(days),]
+    }
+    
   }
   
   #### Create data
