@@ -1,6 +1,9 @@
 # TODO:
 # 1. Sys.Date(), for day/month to check for downloading data.
 # 2. Yearly datasets (so don't have to recreate all of them?)
+# 3. Cloud mask: https://ladsweb.modaps.eosdis.nasa.gov/api/v2/content/archives/Document%20Archive/Science%20Data%20Product%20Documentation/VIIRS_Black_Marble_UG_v1.1_July_2020.pdf
+#   file:///Users/robmarty/Downloads/Thesis_Zihao_Zheng.pdf
+
 
 library(purrr)
 library(furrr)
@@ -85,16 +88,37 @@ file_to_raster <- function(f){
   
   ## Data
   h5_data <- H5Fopen(f) 
-  lat <- h5_data$HDFEOS$GRIDS$VIIRS_Grid_DNB_2d$`Data Fields`$lat
-  lon <- h5_data$HDFEOS$GRIDS$VIIRS_Grid_DNB_2d$`Data Fields`$lon
-  out <- h5_data$HDFEOS$GRIDS$VIIRS_Grid_DNB_2d$`Data Fields`$NearNadir_Composite_Snow_Free
-  #land_water_mask <- h5_data$HDFEOS$GRIDS$VIIRS_Grid_DNB_2d$`Data Fields`$Land_Water_Mask
   
-  xMin <- min(lon) %>% round()
-  yMin <- min(lat) %>% round()
-  xMax <- max(lon) %>% round()
-  yMax <- max(lat) %>% round()
+  if(f %>% str_detect("VNP46A1|VNP46A2")){
+    
+    tile_i <- f %>% str_extract("h\\d{2}v\\d{2}")
+    
+    grid_sf <- read_sf("https://raw.githubusercontent.com/ramarty/download_blackmarble/main/data/blackmarbletiles.geojson")
+    grid_i_sf <- grid_sf[grid_sf$TileID %in% tile_i,]
+    
+    grid_i_sf_box <- grid_i_sf %>%
+      st_bbox()
+    
+    xMin <- min(grid_i_sf_box$xmin) %>% round()
+    yMin <- min(grid_i_sf_box$ymin) %>% round()
+    xMax <- max(grid_i_sf_box$xmax) %>% round()
+    yMax <- max(grid_i_sf_box$ymax) %>% round()
+    
+    names(h5_data$HDFEOS$GRIDS$VNP_Grid_DNB$`Data Fields`)
+    out <- h5_data$HDFEOS$GRIDS$VNP_Grid_DNB$`Data Fields`$`Gap_Filled_DNB_BRDF-Corrected_NTL`
   
+  } else{
+    lat <- h5_data$HDFEOS$GRIDS$VIIRS_Grid_DNB_2d$`Data Fields`$lat
+    lon <- h5_data$HDFEOS$GRIDS$VIIRS_Grid_DNB_2d$`Data Fields`$lon
+    out <- h5_data$HDFEOS$GRIDS$VIIRS_Grid_DNB_2d$`Data Fields`$NearNadir_Composite_Snow_Free
+    #land_water_mask <- h5_data$HDFEOS$GRIDS$VIIRS_Grid_DNB_2d$`Data Fields`$Land_Water_Mask
+    
+    xMin <- min(lon) %>% round()
+    yMin <- min(lat) %>% round()
+    xMax <- max(lon) %>% round()
+    yMax <- max(lat) %>% round()
+  }
+
   ## Metadata
   nRows      <- nrow(out)
   nCols      <- ncol(out)
@@ -124,7 +148,7 @@ file_to_raster <- function(f){
   #extent(land_water_mask_r) <- rasExt
   
   #water to 0
-  outr[][outr[] %in% 65535] <- 0 #TODO: Better way to do
+  outr[][outr[] %in% 65535] <- NA #TODO: Better way to do
   
   h5closeAll()
   
