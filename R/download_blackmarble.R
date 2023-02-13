@@ -105,6 +105,7 @@ file_to_raster <- function(f){
     yMax <- max(grid_i_sf_box$ymax) %>% round()
     
     names(h5_data$HDFEOS$GRIDS$VNP_Grid_DNB$`Data Fields`)
+    h5_data$HDFEOS$GRIDS$VNP_Grid_DNB$`Data Fields`$QF_Cloud_Mask %>% as.vector() %>% table()
     out <- h5_data$HDFEOS$GRIDS$VNP_Grid_DNB$`Data Fields`$`Gap_Filled_DNB_BRDF-Corrected_NTL`
   
   } else{

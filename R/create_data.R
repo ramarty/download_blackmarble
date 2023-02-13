@@ -3,14 +3,15 @@
 if(F){
   
   # Daily: VNP46A1 -------------------------------------------------------------
-  for(year in 2012:2022){
+  for(year in 2012:2023){
     for(day in 1:366){
       
       if(year == 2012 & day < 19) next
       
       print(paste(year, day))
       
-      OUT_FILE <- paste0("~/Documents/Github/download_blackmarble/data/VNP46A1/VNP46A1_",year,"_",pad3(day),".csv")
+      dir.create(paste0("~/Documents/Github/download_blackmarble/data/VNP46A1/",year))
+      OUT_FILE <- paste0("~/Documents/Github/download_blackmarble/data/VNP46A1/",year,"/VNP46A1_",year,"_",pad3(day),".csv")
       
       if(!file.exists(OUT_FILE)){
         
@@ -39,14 +40,16 @@ if(F){
   }
   
   # Daily: VNP46A2 -------------------------------------------------------------
-  for(year in 2012:2022){
+  for(year in 2012:2023){
     for(day in 1:366){
       
       if(year == 2012 & day < 19) next
       
       print(paste(year, day))
       
-      OUT_FILE <- paste0("~/Documents/Github/download_blackmarble/data/VNP46A2/VNP46A2_",year,"_",pad3(day),".csv")
+      dir.create(paste0("~/Documents/Github/download_blackmarble/data/VNP46A2/",year))
+
+      OUT_FILE <- paste0("~/Documents/Github/download_blackmarble/data/VNP46A2/",year,"/VNP46A2_",year,"_",pad3(day),".csv")
       
       if(!file.exists(OUT_FILE)){
 
