@@ -446,7 +446,7 @@ bm_raster <- function(roi_sf,
                       bearer){
   
   # Checks ---------------------------------------------------------------------
-  if(nrow(roi) > 1){
+  if(nrow(roi_sf) > 1){
     stop("roi must be 1 row")
   }
   
