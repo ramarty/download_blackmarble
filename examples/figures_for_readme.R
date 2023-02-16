@@ -38,7 +38,7 @@ p <- ggplot() +
                        mid = "yellow",
                        high = "red",
                        midpoint = 4.5) +
-  labs(title = "NTL, October 2021") +
+  labs(title = "Nighttime Lights: October 2021") +
   coord_quickmap() + 
   theme_void() +
   theme(plot.title = element_text(face = "bold", hjust = 0.5),
