@@ -12,6 +12,8 @@ Eventually the package will be available via `devtools`; for now, load the packa
 # install.packages(stringr)
 # install.packages(rhdf5)
 # install.packages(raster)
+# install.packages(dplyr)
+# install.packages(sf)
 
 source("https://raw.githubusercontent.com/ramarty/download_blackmarble/main/R/download_blackmarble.R")
 ```
@@ -27,4 +29,77 @@ The function requires using a **Bearer Token**; to obtain a token, follow the be
 
 ## Examples
 
-EXAMPLES USING MAIN FUNCTIONS HERE
+The below example shows making daily, monthly, and annual rasters of nighttime
+lights for Ghana.
+
+```r
+#### Setup
+# Define NASA bearer token
+bearer <- "BEARER-TOKEN-HERE"
+
+# Define region of interest (roi). The roi must be (1) an sf polygon and (2)
+# in the WGS84 (epsg:4326) coordinate reference system. Here, we use the 
+# getData function to load a polygon of Kenya
+roi_sf <- getData('GADM', country='GHA', level=0) %>% st_as_sf()
+
+#### Make Rasters
+# Daily data: raster for February 5, 2021
+ken_20210205_r <- bm_raster(roi_sf = roi_sf,
+                            product_id = "VNP46A4",
+                            year = 2021,
+                            day = 36,
+                            bearer = bearer)
+  
+# Monthly data: raster for October 2021
+ken_202110_r <- bm_raster(roi_sf = roi_sf,
+                          product_id = "VNP46A4",
+                          year = 2021,
+                          month = 10,
+                          bearer = bearer)
+
+# Annual data: raster for 2021
+ken_2021_r <- bm_raster(roi_sf = roi_sf,
+                        product_id = "VNP46A4",
+                        year = 2021,
+                        bearer = bearer)
+```
+
+We can then plot the raster
+
+```r
+#### Prep data
+ken_202110_r <- ken_202110_r %>% mask(roi_sf) 
+
+r_df <- rasterToPoints(ken_202110_r, spatial = TRUE) %>% as.data.frame()
+names(r_df) <- c("value", "x", "y")
+
+## Remove very low values of NTL; can be considered noise 
+r_df$value[r_df$value <= 2] <- 0
+
+## Distribution is skewed, so log
+r_df$value_adj <- log(r_df$value+1)
+
+##### Map 
+p <- ggplot() +
+  geom_raster(data = r_df, 
+              aes(x = x, y = y, 
+                  fill = value_adj)) +
+  scale_fill_gradient2(low = "black",
+                       mid = "yellow",
+                       high = "red",
+                       midpoint = 4.5) +
+  labs(title = "NTL, October 2021") +
+  coord_quickmap() + 
+  theme_void() +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5),
+        legend.position = "none")
+
+```
+
+<p align="center">
+<img src="man/figures/ntl_gha.png" alt="Mapbox Example Polygon" width="800"/>
+</p>
+
+Relying on the `writeRaster` from the `raster` package, the rasters can be saved as `.tif` files. The [`exactextractr`](https://github.com/isciences/exactextractr) package can be used to aggregate raster values to different administrative zones. 
+
+

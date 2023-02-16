@@ -4,7 +4,6 @@
 # 3. Cloud mask: https://ladsweb.modaps.eosdis.nasa.gov/api/v2/content/archives/Document%20Archive/Science%20Data%20Product%20Documentation/VIIRS_Black_Marble_UG_v1.1_July_2020.pdf
 #   file:///Users/robmarty/Downloads/Thesis_Zihao_Zheng.pdf
 
-
 library(purrr)
 library(furrr)
 library(stringr)
@@ -368,3 +367,148 @@ bm_mk_raster <- function(loc_sf = NULL,
   
   return(r_out)
 }
+
+r_big_mosaic <- function(r_list){
+  
+  ## Make template raster
+  r_list_temp <- r_list
+  
+  names(r_list_temp)    <- NULL
+  r_list_temp$tolerance <- 9999999
+  
+  r_temp <- do.call(raster::merge, r_list_temp)
+  r_temp[] <- NA
+  
+  ## Resample to template
+  for(i in 1:length(r_list)) r_list[[i]] <- raster::resample(r_list[[i]], 
+                                                             r_temp, 
+                                                             method = "ngb")
+  
+  ## Mosaic rasters together
+  names(r_list)    <- NULL
+  r_list$fun       <- max
+  r_list$tolerance <- 999
+  
+  r <- do.call(raster::mosaic, r_list) 
+  
+  return(r)
+}
+
+
+#' Make Black Marble Raster
+#' 
+#' Make a raster of nighttime lights from [NASA Black Marble data](https://blackmarble.gsfc.nasa.gov/)
+#' 
+#' @param roi_sf Region of interest; sf polygon.
+#' @product_id Either `VNP46A1`, `VNP46A2`, `VNP46A3`, or `VNP46A4`. `VNP46A1` is daily data, `VNP46A2` is daily data with additional corrections `VNP46A3` is monthly data, and `VNP46A4` is annual data. For more information, see [here](https://blackmarble.gsfc.nasa.gov/). 
+#' @year Year of raster data. Always required.
+#' @month Month of raster data (values between `1-12`). Required for product ID `VNP46A3` (monthly data); otherwise, ignored.
+#' @day Day of raster data (values between `1-366`). Required for product IDs `VNP46A1` and `VNP46A2` (daily data); otherwise, ignored.
+#' @bearer NASA bearer token. For instructions on how to create a bearer token, see [here](https://github.com/ramarty/download_blackmarble)
+#' 
+#' @return Raster
+#'
+#' @examples
+#' \dontrun{
+#' # Define bearer token
+#' bearer <- "BEARER-TOKEN-HERE"
+#' 
+#' # sf polygon of Kenya
+#' roi_sf <- getData('GADM', country='KEN', level=0) %>% st_as_sf()
+#' 
+#' # Daily data: raster for February 5, 2021
+#' ken_20210205_r <- bm_raster(roi_sf = roi_sf,
+#'                    product_id = "VNP46A4",
+#'                    year = 2021,
+#'                    day = 36,
+#'                    bearer = bearer)
+#' 
+#' # Monthly data: raster for March 2021
+#' ken_202103_r <- bm_raster(roi_sf = roi_sf,
+#'                    product_id = "VNP46A4",
+#'                   year = 2021,
+#'                    month = 3,
+#'                   bearer = bearer)
+#' 
+#' # Annual data: raster for 2021
+#' ken_2021_r <- bm_raster(roi_sf = roi_sf,
+#'                    product_id = "VNP46A4",
+#'                    year = 2021,
+#'                    bearer = bearer)
+#'}
+#'
+#' @export
+bm_raster <- function(roi_sf,
+                      product_id,
+                      year = NULL,
+                      month = NULL,
+                      day = NULL,
+                      bearer){
+  
+  # Checks ---------------------------------------------------------------------
+  if(nrow(roi) > 1){
+    stop("roi must be 1 row")
+  }
+  
+  if(!("sf" %in% class(roi_sf))){
+    stop("roi must be an sf object")
+  }
+  
+  # Black marble grid ----------------------------------------------------------
+  grid_sf <- read_sf("https://raw.githubusercontent.com/ramarty/download_blackmarble/main/data/blackmarbletiles.geojson")
+  
+  # Load dataframe of tiles ----------------------------------------------------
+  if(product_id %in% c("VNP46A1", "VNP46A2")){
+    bm_files_df <- read.csv(paste0("https://raw.githubusercontent.com/ramarty/download_blackmarble/main/data/",
+                                   product_id,
+                                   "/", year, "/",
+                                   product_id,"_",year,"_",pad3(day),".csv"))
+    
+    bm_files_df <- bm_files_df[bm_files_df$day %in% day,]
+  }
+  
+  if(product_id == "VNP46A3"){
+    bm_files_df <- read.csv(paste0("https://raw.githubusercontent.com/ramarty/download_blackmarble/main/data/VNP46A3/VNP46A3_",year,".csv"))
+    
+    bm_files_df <- bm_files_df[bm_files_df$month %in% month,]
+  }
+  
+  if(product_id == "VNP46A4"){
+    bm_files_df <- read.csv(paste0("https://raw.githubusercontent.com/ramarty/download_blackmarble/main/data/VNP46A4.csv"))
+    
+    bm_files_df <- bm_files_df[bm_files_df$year %in% year,]
+  }
+  
+  # Intersecting tiles ---------------------------------------------------------
+  # Remove grid along edges, which causes st_intersects to fail
+  grid_sf <- grid_sf[!(grid_sf$TileID %>% str_detect("h00")),]
+  grid_sf <- grid_sf[!(grid_sf$TileID %>% str_detect("v00")),]
+  
+  inter <- st_intersects(grid_sf, roi_sf, sparse = F) %>% as.vector()
+  grid_use_sf <- grid_sf[inter,]
+  
+  # Make Raster ----------------------------------------------------------------
+  tile_ids_rx <- grid_use_sf$TileID %>% paste(collapse = "|")
+  bm_files_df <- bm_files_df[bm_files_df$name %>% str_detect(tile_ids_rx),]
+  
+  r_list <- lapply(bm_files_df$name, function(name_i){
+    download_raster(name_i, bearer)
+  })
+  
+  #r <- r_big_mosaic(r_list)
+  
+  #r_listr <<- r_list
+  
+  ## Mosaic rasters together
+  names(r_list)    <- NULL
+  r_list$fun       <- max
+  
+  r <- do.call(raster::mosaic, r_list) 
+  
+  ## Crop
+  r <- r %>% crop(roi_sf)
+  
+  return(r)
+}
+
+
