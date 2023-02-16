@@ -44,21 +44,21 @@ roi_sf <- getData('GADM', country='GHA', level=0) %>% st_as_sf()
 
 #### Make Rasters
 # Daily data: raster for February 5, 2021
-ken_20210205_r <- bm_raster(roi_sf = roi_sf,
+r_20210205 <- bm_raster(roi_sf = roi_sf,
                             product_id = "VNP46A4",
                             year = 2021,
                             day = 36,
                             bearer = bearer)
   
 # Monthly data: raster for October 2021
-ken_202110_r <- bm_raster(roi_sf = roi_sf,
+r_202110 <- bm_raster(roi_sf = roi_sf,
                           product_id = "VNP46A4",
                           year = 2021,
                           month = 10,
                           bearer = bearer)
 
 # Annual data: raster for 2021
-ken_2021_r <- bm_raster(roi_sf = roi_sf,
+r_2021 <- bm_raster(roi_sf = roi_sf,
                         product_id = "VNP46A4",
                         year = 2021,
                         bearer = bearer)
@@ -68,9 +68,9 @@ We can then plot the raster
 
 ```r
 #### Prep data
-ken_202110_r <- ken_202110_r %>% mask(roi_sf) 
+r_2021 <- r_2021 %>% mask(roi_sf) 
 
-r_df <- rasterToPoints(ken_202110_r, spatial = TRUE) %>% as.data.frame()
+r_df <- rasterToPoints(r_2021, spatial = TRUE) %>% as.data.frame()
 names(r_df) <- c("value", "x", "y")
 
 ## Remove very low values of NTL; can be considered noise 
