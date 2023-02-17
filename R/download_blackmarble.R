@@ -402,8 +402,8 @@ r_big_mosaic <- function(r_list){
 #' 
 #' @param roi_sf Region of interest; sf polygon.
 #' @product_id Either `VNP46A1`, `VNP46A2`, `VNP46A3`, or `VNP46A4`. `VNP46A1` is daily data, `VNP46A2` is daily data with additional corrections `VNP46A3` is monthly data, and `VNP46A4` is annual data. For more information, see [here](https://blackmarble.gsfc.nasa.gov/). 
-#' @year Year of raster data. Required for product ID `VNP46A3` (monthly data) and `VNP46A4` (annual data); otherwise, ignored.
-#' @month Month of raster data (values between `1-12`). Required for product ID `VNP46A3` (monthly data); otherwise, ignored.
+#' @year Year of raster data. Required for product ID `VNP46A4` (annual data); otherwise, ignored.
+#' @month Month of raster data (use first day of month: e.g., `"2021-03-01"` will return data for March 3). Required for product ID `VNP46A3` (monthly data); otherwise, ignored.
 #' @date Date of raster data (e.g. `"2021-03-01"`). Required for product IDs `VNP46A1` and `VNP46A2` (daily data); otherwise, ignored.
 #' @bearer NASA bearer token. For instructions on how to create a bearer token, see [here](https://github.com/ramarty/download_blackmarble)
 #' 
@@ -419,17 +419,16 @@ r_big_mosaic <- function(r_list){
 #' 
 #' # Daily data: raster for February 5, 2021
 #' ken_20210205_r <- bm_raster(roi_sf = roi_sf,
-#'                    product_id = "VNP46A4",
+#'                    product_id = "VNP46A2",
 #'                    year = 2021,
 #'                    day = 36,
 #'                    bearer = bearer)
 #' 
 #' # Monthly data: raster for March 2021
 #' ken_202103_r <- bm_raster(roi_sf = roi_sf,
-#'                    product_id = "VNP46A4",
-#'                   year = 2021,
-#'                    month = 3,
-#'                   bearer = bearer)
+#'                    product_id = "VNP46A3",
+#'                    month = "2021-03-01",
+#'                    bearer = bearer)
 #' 
 #' # Annual data: raster for 2021
 #' ken_2021_r <- bm_raster(roi_sf = roi_sf,
@@ -473,6 +472,9 @@ bm_raster <- function(roi_sf,
   }
   
   if(product_id == "VNP46A3"){
+    year  <- month %>% year()
+    month <- month %>% month()
+    
     bm_files_df <- read.csv(paste0("https://raw.githubusercontent.com/ramarty/download_blackmarble/main/data/VNP46A3/VNP46A3_",year,".csv"))
     
     bm_files_df <- bm_files_df[bm_files_df$month %in% month,]

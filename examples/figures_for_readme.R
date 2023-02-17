@@ -10,12 +10,30 @@ year <- 2018
 month <- 5
 day <- 1
 
+# Testing ----------------------------------------------------------------------
+month = c("2021-10-01", "2021-10-01")
+ 
+if(product_id == "VNP46A3"){
+  # TRYCATCH
+  lapply(month, function(month_i){
+    bm_raster(roi_sf = roi_sf,
+              product_id = "VNP46A3",
+              month = month_i,
+              bearer = bearer)
+  })
+}
+
+# Map --------------------------------------------------------------------------
+r <- bm_raster(roi_sf = roi_sf,
+               product_id = "VNP46A3",
+               month = "2021-10-01",
+               bearer = bearer)
+
 # Make map ---------------------------------------------------------------------
 #### Make raster
 r <- bm_raster(roi_sf = roi_sf,
                product_id = "VNP46A3",
-               year = 2021,
-               month = 10,
+               month = "2021-10-01",
                bearer = bearer)
 
 #### Prep data

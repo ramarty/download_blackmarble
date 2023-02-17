@@ -50,8 +50,8 @@ The function takes the following arguments:
  
 * `roi_sf`: Region of interest; sf polygon. Must be in the [WGS 84 (epsg:4326)](https://epsg.io/4326) coordinate reference system.
 * `product_id`: Either: `VNP46A1`, `VNP46A2`, `VNP46A3`, or `VNP46A4`.
-* `year`: Year of raster data. Required for product ID `VNP46A3` (monthly data) and `VNP46A4` (annual data); otherwise, ignored.
-* `month`: Month of raster data (values between `1-12`). Required for product ID `VNP46A3` (monthly data); otherwise, ignored.
+* `year`: Year of raster data. Required for product ID `VNP46A4` (annual data); otherwise, ignored.
+* `month`: Month of raster data (use first day of month: e.g., `"2021-03-01"` will return data for March 3). Required for product ID `VNP46A3` (monthly data); otherwise, ignored.
 * `date`: Day of raster data (e.g., `2021-01-03`). Required for product IDs `VNP46A1` and `VNP46A2` (daily data); otherwise, ignored.
 * `bearer`: NASA bearer token. 
 
@@ -80,8 +80,7 @@ r_20210205 <- bm_raster(roi_sf = roi_sf,
 ### Monthly data: raster for October 2021
 r_202110 <- bm_raster(roi_sf = roi_sf,
                           product_id = "VNP46A3",
-                          year = 2021,
-                          month = 10,
+                          month = "2021-10-01", # The day is ignored
                           bearer = bearer)
 
 ### Annual data: raster for 2021
