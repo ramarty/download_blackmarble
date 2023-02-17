@@ -108,10 +108,10 @@ To extract data for multiple time periods, add multiple time periods to `date`. 
 
 ```r
 #### Daily data in March 2021
-r_monthly <- bm_raster(roi_sf = roi_sf,
-                       product_id = "VNP46A3",
-                       date = seq.Date(from = ymd("2021-03-01"), to = ymd("2021-03-31"), by = "day"),
-                       bearer = bearer)
+r_daily <- bm_raster(roi_sf = roi_sf,
+                     product_id = "VNP46A3",
+                     date = seq.Date(from = ymd("2021-03-01"), to = ymd("2021-03-31"), by = "day"),
+                     bearer = bearer)
                           
 #### Monthly aggregated data in 2021 and 2022
 r_monthly <- bm_raster(roi_sf = roi_sf,
