@@ -407,7 +407,7 @@ r_big_mosaic <- function(r_list){
 #' Make a raster of nighttime lights from [NASA Black Marble data](https://blackmarble.gsfc.nasa.gov/)
 #' 
 #' @param roi_sf Region of interest; sf polygon.
-#' @product_id Either `VNP46A1`, `VNP46A2`, `VNP46A3`, or `VNP46A4`. `VNP46A1` is daily data, `VNP46A2` is daily data with additional corrections `VNP46A3` is monthly data, and `VNP46A4` is annual data. For more information, see [here](https://blackmarble.gsfc.nasa.gov/). 
+#' @product_id Either `VNP46A1`, `VNP46A2`, `VNP46A3`, or `VNP46A4`. `VNP46A1` is daily data, `VNP46A2` is daily data with additional corrections `VNP46A3` is monthly data, and `VNP46A4` is annual data. For more information, see [here](https://blackmarble.gsfc.nasa.gov/#product). 
 #' @date Date of raster data. For `VNP46A1` and `VNP46A2` (daily data), a date (eg, `"2021-10-03`). For `VNP46A3` (monthly data), a date or year-month (e.g., (a) `"2021-10-01`, where the day will be ignored, or (b) `"2021-10`). For `VNP46A4` (annual data), year or date  (e.g., (a) `"2021-10-01`, where the month and day will be ignored, or (b) `"2021`).
 #' @bearer NASA bearer token. For instructions on how to create a bearer token, see [here](https://github.com/ramarty/download_blackmarble)
 #' 

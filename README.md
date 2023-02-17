@@ -1,5 +1,7 @@
 # Download Nighttime Lights Black Marble Data
 
+Create Georeferenced Rasters of Nighttime Lights from [NASA Black Marble data](https://blackmarble.gsfc.nasa.gov/)
+
 * [Overview](#overview)
 * [Installation](#installation)
 * [Bearer token](#token)
@@ -56,12 +58,12 @@ The primary function in the package is `bm_raster`, which produces a raster of b
 * `VNP46A3`: Monthly nighttime lights.
 * `VNP46A4`: Annual nighttime lights.
 
-For more infromation on the different nighttime lights products, see [here](https://blackmarble.gsfc.nasa.gov/).
+For more infromation on the different nighttime lights products, see [here](https://blackmarble.gsfc.nasa.gov/#product).
 
 The function takes the following arguments:
  
 * `roi_sf`: Region of interest; sf polygon. Must be in the [WGS 84 (epsg:4326)](https://epsg.io/4326) coordinate reference system.
-* `product_id`: Either: `VNP46A1`, `VNP46A2`, `VNP46A3`, or `VNP46A4`.
+* `product_id`: Either: `VNP46A1`, `VNP46A2`, `VNP46A3`, or `VNP46A4`. 
 * `date`: Date of raster data. For `VNP46A1` and `VNP46A2` (daily data), a date (eg, `"2021-10-03`). For `VNP46A3` (monthly data), a date or year-month (e.g., (a) `"2021-10-01`, where the day will be ignored, or (b) `"2021-10`). For `VNP46A4` (annual data), year or date  (e.g., (a) `"2021-10-01`, where the month and day will be ignored, or (b) `"2021`). Entering one date will produce a raster. Entering multiple dates will produce a raster stack.
 * `bearer`: NASA bearer token. 
 
