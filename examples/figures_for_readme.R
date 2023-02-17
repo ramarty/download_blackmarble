@@ -11,17 +11,35 @@ month <- 5
 day <- 1
 
 # Testing ----------------------------------------------------------------------
-month = c("2021-10-01", "2021-10-01")
+r_monthly <- bm_raster(roi_sf = roi_sf,
+                       product_id = "VNP46A3",
+                       date = seq.Date(from = ymd("2021-01-01"), to = ymd("2021-02-01"), by = "month"),
+                       bearer = bearer)
+
+month = c("2021-10-01", "9999", "2021-11-01")
  
 if(product_id == "VNP46A3"){
   # TRYCATCH
-  lapply(month, function(month_i){
-    bm_raster(roi_sf = roi_sf,
+  r_list <- lapply(month, function(month_i){
+    
+    r <- bm_raster(roi_sf = roi_sf,
               product_id = "VNP46A3",
               month = month_i,
               bearer = bearer)
+    
+    names(r) <- paste0("t", month_i %>% str_replace_all("-", "_") %>% substring(1,7))
+    
+    return(r)
   })
 }
+
+ss <- stack(r_list)
+
+writeRaster(ss, "~/Desktop/temp.tif")
+
+a <- stack("~/Desktop/temp.tif")
+
+names(ss) <- paste0("month_", month %>% str_replace_all("-", "_"))
 
 # Map --------------------------------------------------------------------------
 r <- bm_raster(roi_sf = roi_sf,
@@ -76,6 +94,38 @@ library(ggplot2)
 # a polygon that is just one row.
 gha_0_sf <- getData('GADM', country='LBN', level=0) %>% st_as_sf()
 gha_1_sf <- getData('GADM', country='LBN', level=1) %>% st_as_sf()
+
+r <- bm_raster(roi_sf = gha_0_sf,
+               product_id = "VNP46A4",
+               date = 2012:2013,
+               bearer = bearer)
+
+ntl_df <- exact_extract(r, gha_1_sf, 'mean', progress = FALSE)
+ntl_df$NAME_1 <- gha_1_sf$NAME_1
+
+ntl_df %>%
+  pivot_longer(cols = -NAME_1) %>%
+  mutate(year = name %>% str_replace_all("mean.t", "") %>% as.numeric()) %>%
+  ggplot() +
+  geom_col(aes(x = year,
+               y = value),
+           fill = "darkorange") +
+  facet_wrap(~NAME_1) +
+  labs(x = NULL,
+       y = "NTL Luminosity",
+       title = "Ghana Admin Level 1: Annual Average Nighttime Lights") +
+  theme_minimal() +
+  theme(strip.text = element_text(face = "bold")) 
+
+ggsave(p,
+       filename = file.path("~/Documents/Github/download_blackmarble/man/figures/ntl_trends_gha.png"),
+       height = 5, width = 6)
+
+ntl_df <- exact_extract(r, gha_1_sf, 'mean', progress = FALSE) %>%
+  as.data.frame()
+
+
+r
 
 gha_ntl_df <- map_df(2012:2021, function(year){
   

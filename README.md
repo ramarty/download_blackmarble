@@ -50,12 +50,10 @@ The function takes the following arguments:
  
 * `roi_sf`: Region of interest; sf polygon. Must be in the [WGS 84 (epsg:4326)](https://epsg.io/4326) coordinate reference system.
 * `product_id`: Either: `VNP46A1`, `VNP46A2`, `VNP46A3`, or `VNP46A4`.
-* `year`: Year of raster data. Required for product ID `VNP46A4` (annual data); otherwise, ignored.
-* `month`: Month of raster data (use first day of month: e.g., `"2021-03-01"` will return data for March 3). Required for product ID `VNP46A3` (monthly data); otherwise, ignored.
-* `date`: Day of raster data (e.g., `2021-01-03`). Required for product IDs `VNP46A1` and `VNP46A2` (daily data); otherwise, ignored.
+* `date`: Date of raster data. For `VNP46A1` and `VNP46A2` (daily data), a date (eg, `"2021-10-03`). For `VNP46A3` (monthly data), a date or year-month (e.g., (a) `"2021-10-01`, where the day will be ignored, or (b) `"2021-10`). For `VNP46A4` (annual data), year or date  (e.g., (a) `"2021-10-01`, where the month and day will be ignored, or (b) `"2021`).
 * `bearer`: NASA bearer token. 
 
-### Make rasters
+### Make raster of nighttime lights
 
 The below example shows making daily, monthly, and annual rasters of nighttime
 lights for Ghana.
@@ -80,14 +78,38 @@ r_20210205 <- bm_raster(roi_sf = roi_sf,
 ### Monthly data: raster for October 2021
 r_202110 <- bm_raster(roi_sf = roi_sf,
                           product_id = "VNP46A3",
-                          month = "2021-10-01", # The day is ignored
+                          date = "2021-10-01", # The day is ignored
                           bearer = bearer)
 
 ### Annual data: raster for 2021
 r_2021 <- bm_raster(roi_sf = roi_sf,
                         product_id = "VNP46A4",
-                        year = 2021,
+                        date = 2021,
                         bearer = bearer)
+```
+
+### Make raster stack of nighttime lights across multiple time periods
+
+To extract data for multiple time periods, add multiple time periods to `date`. The function will return a raster stack, where each raster band corresponds to a different date. The below code provides examples getting data across multiple days, months, and years.
+
+```r
+#### Daily data in March 2021
+r_monthly <- bm_raster(roi_sf = roi_sf,
+                          product_id = "VNP46A3",
+                          date = seq.Date(from = ymd("2021-03-01"), to = ymd("2021-03-31"), by = "day"),
+                          bearer = bearer)
+                          
+#### Monthly aggregated data in 2021 and 2022
+r_monthly <- bm_raster(roi_sf = roi_sf,
+                          product_id = "VNP46A3",
+                          date = seq.Date(from = ymd("2021-01-01"), to = ymd("2022-12-01"), by = "month"),
+                          bearer = bearer)
+                          
+#### Yearly aggregated data in 2012 and 2021
+r_annual <- bm_raster(roi_sf = roi_sf,
+                          product_id = "VNP46A4",
+                          date = 2012:2021,
+                          bearer = bearer)
 ```
 
 ### Map of nighttime lights
@@ -148,25 +170,21 @@ gha_0_sf <- getData('GADM', country='GHA', level=0) %>% st_as_sf()
 gha_1_sf <- getData('GADM', country='GHA', level=1) %>% st_as_sf()
 
 #### Extract annual data
-gha_ntl_df <- map_df(2012:2021, function(year){
-  
-  r <- bm_raster(roi_sf = gha_0_sf,
-                 product_id = "VNP46A4",
-                 year = year,
-                 bearer = bearer)
-  
-  gha_1_sf$ntl <- exact_extract(r, gha_1_sf, 'mean', progress = FALSE)
-  gha_1_sf$year <- year
-  gha_1_sf$geometry <- NULL # We only want data; remove geometry to make object smaller
-  
-  return(gha_1_sf)
-})
+r <- bm_raster(roi_sf = gha_0_sf,
+               product_id = "VNP46A4",
+               date = 2012:2022,
+               bearer = bearer)
+
+ntl_df <- exact_extract(r, gha_1_sf, 'mean', progress = FALSE)
+ntl_df$NAME_1 <- gha_1_sf$NAME_1
 
 #### Trends over time
-gha_ntl_df %>%
+ntl_df %>%
+  pivot_longer(cols = -NAME_1) %>%
+  mutate(year = name %>% str_replace_all("mean.t", "") %>% as.numeric()) %>%
   ggplot() +
   geom_col(aes(x = year,
-               y = ntl),
+               y = value),
            fill = "darkorange") +
   facet_wrap(~NAME_1) +
   labs(x = NULL,
