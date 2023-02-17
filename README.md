@@ -27,7 +27,29 @@ The function requires using a **Bearer Token**; to obtain a token, follow the be
 3. Click "See wget Download Command" (bottom near top, in the middle)
 4. After clicking, you will see text that can be used to download data. The "Bearer" token will be a long string in red.
 
-## Examples
+## Quickstart
+
+### bm_raster() function
+
+The primary function in the package is `bm_raster`, which produces a raster of black marble nighttime lights. It can produce rasters from the following Black Marble products:
+
+* `VNP46A1`: Daily nighttime lights
+* `VNP46A2`: Daily nighttime lights with additional light corrections.
+* `VNP46A3`: Monthly nighttime lights.
+* `VNP46A4`: Annual nighttime lights.
+
+For more infromation on the different nighttime lights products, see [here](https://blackmarble.gsfc.nasa.gov/).
+
+The function takes the following arguments:
+ 
+* `roi_sf`: Region of interest; sf polygon. Must be in the [WGS 84 (epsg:4326)](https://epsg.io/4326) coordinate reference system.
+* `product_id`: Either: `VNP46A1`, `VNP46A2`, `VNP46A3`, or `VNP46A4`.
+* `year`: Year of raster data. Always required.
+* `month`: Month of raster data (values between `1-12`). Required for product ID `VNP46A3` (monthly data); otherwise, ignored.
+* `day`: Day of raster data (values between `1-366`). Required for product IDs `VNP46A1` and `VNP46A2` (daily data); otherwise, ignored.
+* `bearer`: NASA bearer token. For instructions on how to create a bearer token, see [here](https://github.com/ramarty/download_blackmarble)
+
+### Examples
 
 The below example shows making daily, monthly, and annual rasters of nighttime
 lights for Ghana.
@@ -43,21 +65,25 @@ bearer <- "BEARER-TOKEN-HERE"
 roi_sf <- getData('GADM', country='GHA', level=0) %>% st_as_sf()
 
 #### Make Rasters
-# Daily data: raster for February 5, 2021
+### Daily data: raster for February 5, 2021
+
+# Feb 5 is the 36th day of the year
+yday("2021-02-05")
+
 r_20210205 <- bm_raster(roi_sf = roi_sf,
-                            product_id = "VNP46A4",
+                            product_id = "VNP46A2",
                             year = 2021,
                             day = 36,
                             bearer = bearer)
   
-# Monthly data: raster for October 2021
+### Monthly data: raster for October 2021
 r_202110 <- bm_raster(roi_sf = roi_sf,
-                          product_id = "VNP46A4",
+                          product_id = "VNP46A3",
                           year = 2021,
                           month = 10,
                           bearer = bearer)
 
-# Annual data: raster for 2021
+### Annual data: raster for 2021
 r_2021 <- bm_raster(roi_sf = roi_sf,
                         product_id = "VNP46A4",
                         year = 2021,
