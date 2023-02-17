@@ -104,26 +104,33 @@ file_to_raster <- function(f){
     xMax <- max(grid_i_sf_box$xmax) %>% round()
     yMax <- max(grid_i_sf_box$ymax) %>% round()
     
+    out <- h5_data$HDFEOS$GRIDS$VNP_Grid_DNB$`Data Fields`[[variable]]
+    
     #names(h5_data$HDFEOS$GRIDS$VNP_Grid_DNB$`Data Fields`)
     #h5_data$HDFEOS$GRIDS$VNP_Grid_DNB$`Data Fields`$QF_Cloud_Mask %>% as.vector() %>% table()
-    if(product_id == "VNP46A1"){
-      out <- h5_data$HDFEOS$GRIDS$VNP_Grid_DNB$`Data Fields`$`DNB_At_Sensor_Radiance_500m`
-    }
+    #if(product_id %in% c("VNP46A1", "VNP46A2")){
+    #out <- h5_data$HDFEOS$GRIDS$VNP_Grid_DNB$`Data Fields`$`DNB_At_Sensor_Radiance_500m`
     
-    if(product_id == "VNP46A2"){
-      out <- h5_data$HDFEOS$GRIDS$VNP_Grid_DNB$`Data Fields`$`Gap_Filled_DNB_BRDF-Corrected_NTL`
-    }
+    #}
+    
+    #if(product_id == "VNP46A2"){
+    #  out <- h5_data$HDFEOS$GRIDS$VNP_Grid_DNB$`Data Fields`$`Gap_Filled_DNB_BRDF-Corrected_NTL`
+    #}
+    
+    # print(names(h5_data$HDFEOS$GRIDS$VNP_Grid_DNB$`Data Fields`))
     
   } else{
     lat <- h5_data$HDFEOS$GRIDS$VIIRS_Grid_DNB_2d$`Data Fields`$lat
     lon <- h5_data$HDFEOS$GRIDS$VIIRS_Grid_DNB_2d$`Data Fields`$lon
-    out <- h5_data$HDFEOS$GRIDS$VIIRS_Grid_DNB_2d$`Data Fields`$NearNadir_Composite_Snow_Free
+    out <- h5_data$HDFEOS$GRIDS$VIIRS_Grid_DNB_2d$`Data Fields`[[variable]]
     #land_water_mask <- h5_data$HDFEOS$GRIDS$VIIRS_Grid_DNB_2d$`Data Fields`$Land_Water_Mask
     
     xMin <- min(lon) %>% round()
     yMin <- min(lat) %>% round()
     xMax <- max(lon) %>% round()
     yMax <- max(lat) %>% round()
+    
+    # print(names(h5_data$HDFEOS$GRIDS$VIIRS_Grid_DNB_2d$`Data Fields`))
   }
   
   ## Metadata
@@ -191,6 +198,14 @@ create_dataset_name_df <- function(product_id,
                                    years = NULL, 
                                    months = NULL,
                                    days = NULL){
+  
+  #### Prep dates
+  if(product_id %in% c("VNP46A1", "VNP46A2")) months <- NULL
+  if(product_id %in% c("VNP46A3"))            days <- NULL
+  if(product_id %in% c("VNP46A4")){
+    days <- NULL
+    months <- NULL
+  } 
   
   #### Determine end year
   year_end <- Sys.Date() %>% 
@@ -405,12 +420,13 @@ r_big_mosaic <- function(r_list){
 #' Make Black Marble Raster
 #' 
 #' Make a raster of nighttime lights from [NASA Black Marble data](https://blackmarble.gsfc.nasa.gov/)
-#' 
-#' @param roi_sf Region of interest; sf polygon.
-#' @product_id Either `VNP46A1`, `VNP46A2`, `VNP46A3`, or `VNP46A4`. `VNP46A1` is daily data, `VNP46A2` is daily data with additional corrections `VNP46A3` is monthly data, and `VNP46A4` is annual data. For more information, see [here](https://blackmarble.gsfc.nasa.gov/#product). 
-#' @date Date of raster data. For `VNP46A1` and `VNP46A2` (daily data), a date (eg, `"2021-10-03`). For `VNP46A3` (monthly data), a date or year-month (e.g., (a) `"2021-10-01`, where the day will be ignored, or (b) `"2021-10`). For `VNP46A4` (annual data), year or date  (e.g., (a) `"2021-10-01`, where the month and day will be ignored, or (b) `"2021`).
-#' @bearer NASA bearer token. For instructions on how to create a bearer token, see [here](https://github.com/ramarty/download_blackmarble)
-#' 
+
+#' @param roi_sf Region of interest; sf polygon. Must be in the [WGS 84 (epsg:4326)](https://epsg.io/4326) coordinate reference system.
+#' @param product_id Either: `VNP46A1`, `VNP46A2`, `VNP46A3`, or `VNP46A4`. 
+#' @param date Date of raster data. For `VNP46A1` and `VNP46A2` (daily data), a date (eg, `"2021-10-03`). For `VNP46A3` (monthly data), a date or year-month (e.g., (a) `"2021-10-01`, where the day will be ignored, or (b) `"2021-10`). For `VNP46A4` (annual data), year or date  (e.g., (a) `"2021-10-01`, where the month and day will be ignored, or (b) `"2021`). Entering one date will produce a raster. Entering multiple dates will produce a raster stack.
+#' @param bearer NASA bearer token. 
+#' @param variable Variable to used to create raster (default: `NULL`). If `NULL`, uses a a default variable. For `VNP46A1`, uses `DNB_At_Sensor_Radiance_500m`. For `VNP46A2`, uses `Gap_Filled_DNB_BRDF-Corrected_NTL`. For `VNP46A3` and `VNP46A4`, uses `NearNadir_Composite_Snow_Free`. For information on other variable choices, see [here](https://ladsweb.modaps.eosdis.nasa.gov/api/v2/content/archives/Document%20Archive/Science%20Data%20Product%20Documentation/VIIRS_Black_Marble_UG_v1.2_April_2021.pdf); for `VNP46A1`, see Table 3; for `VNP46A2` see Table 6; for `VNP46A3` and `VNP46A4`, see Table 9.
+#'
 #' @return Raster
 #'
 #' @examples
@@ -421,31 +437,31 @@ r_big_mosaic <- function(r_list){
 #' # sf polygon of Kenya
 #' roi_sf <- getData('GADM', country='KEN', level=0) %>% st_as_sf()
 #' 
-#' # Daily data: raster for February 5, 2021
+#' # Daily data: raster for October 3, 2021
 #' ken_20210205_r <- bm_raster(roi_sf = roi_sf,
-#'                    product_id = "VNP46A2",
-#'                    year = 2021,
-#'                    day = 36,
-#'                    bearer = bearer)
+#'                             product_id = "VNP46A2",
+#'                             date = "2021-10-03",
+#'                             bearer = bearer)
 #' 
 #' # Monthly data: raster for March 2021
 #' ken_202103_r <- bm_raster(roi_sf = roi_sf,
-#'                    product_id = "VNP46A3",
-#'                    month = "2021-03-01",
-#'                    bearer = bearer)
+#'                           product_id = "VNP46A3",
+#'                           date = "2021-03-01",
+#'                           bearer = bearer)
 #' 
 #' # Annual data: raster for 2021
 #' ken_2021_r <- bm_raster(roi_sf = roi_sf,
-#'                    product_id = "VNP46A4",
-#'                    year = 2021,
-#'                    bearer = bearer)
+#'                         product_id = "VNP46A4",
+#'                         date = 2021,
+#'                         bearer = bearer)
 #'}
 #'
 #' @export
 bm_raster <- function(roi_sf,
                       product_id,
                       date,
-                      bearer){
+                      bearer,
+                      variable = NULL){
   
   # Checks ---------------------------------------------------------------------
   if(nrow(roi_sf) > 1){
@@ -454,6 +470,13 @@ bm_raster <- function(roi_sf,
   
   if(!("sf" %in% class(roi_sf))){
     stop("roi must be an sf object")
+  }
+  
+  # NTL Variable ---------------------------------------------------------------
+  if(is.null(variable)){
+    if(product_id == "VNP46A1") variable <- "DNB_At_Sensor_Radiance_500m"
+    if(product_id == "VNP46A2") variable <- "Gap_Filled_DNB_BRDF-Corrected_NTL"
+    if(product_id %in% c("VNP46A3", "VNP46A4")) variable <- "NearNadir_Composite_Snow_Free"
   }
   
   # Prep date names ------------------------------------------------------------
@@ -478,7 +501,8 @@ bm_raster <- function(roi_sf,
         r <- bm_raster_i(roi_sf = roi_sf,
                          product_id = product_id,
                          date = date_i,
-                         bearer = bearer)
+                         bearer = bearer,
+                         variable = variable)
         names(r) <- paste0("t", date_i %>% str_replace_all("-", "_") %>% substring(1,7))
         
         return(r)
@@ -493,7 +517,6 @@ bm_raster <- function(roi_sf,
   
   # Clean output ---------------------------------------------------------------
   # Remove NULLs
-  a <<- r_list
   r_list <- r_list[!sapply(r_list,is.null)]
   
   if(length(r_list) == 1){
@@ -510,51 +533,44 @@ bm_raster <- function(roi_sf,
 bm_raster_i <- function(roi_sf,
                         product_id,
                         date,
-                        bearer){
+                        bearer,
+                        variable){
   
   # Black marble grid ----------------------------------------------------------
   grid_sf <- read_sf("https://raw.githubusercontent.com/ramarty/download_blackmarble/main/data/blackmarbletiles.geojson")
   
-  # Load dataframe of tiles ----------------------------------------------------
-  if(product_id %in% c("VNP46A1", "VNP46A2")){
-    
-    day <- yday(date)
-    year <- date %>% year()
-    
-    bm_files_df <- read.csv(paste0("https://raw.githubusercontent.com/ramarty/download_blackmarble/main/data/",
-                                   product_id,
-                                   "/", year, "/",
-                                   product_id,"_",year,"_",pad3(day),".csv"))
-    
-    bm_files_df <- bm_files_df[bm_files_df$day %in% day,]
-  }
-  
+  # Prep dates -----------------------------------------------------------------
+  ## For monthly, allow both yyyy-mm and yyyy-mm-dd (where -dd is ignored)
   if(product_id == "VNP46A3"){
     
     if(nchar(date) %in% 7){
       date <- paste0(date, "-01")
     }
     
-    year  <- date %>% year()
-    month <- date %>% month()
-    
-    bm_files_df <- read.csv(paste0("https://raw.githubusercontent.com/ramarty/download_blackmarble/main/data/VNP46A3/VNP46A3_",year,".csv"))
-    
-    bm_files_df <- bm_files_df[bm_files_df$month %in% month,]
   }
   
+  ## For year, allow both yyyy and yyyy-mm-dd (where -mm-dd is ignored)
   if(product_id == "VNP46A4"){
     
-    if(nchar(date) %in% 10){
-      year <- date %>% year()
-    } else{
-      year <- date
+    if(nchar(date) %in% 4){
+      date <- paste0(date, "-01-01")
     }
     
-    bm_files_df <- read.csv(paste0("https://raw.githubusercontent.com/ramarty/download_blackmarble/main/data/VNP46A4.csv"))
-    
-    bm_files_df <- bm_files_df[bm_files_df$year %in% year,]
   }
+  
+  # Grab tile dataframe --------------------------------------------------------
+  #product_id <- "VNP46A4"
+  #date <- "2021-10-15"
+  
+  year  <- date %>% year()
+  month <- date %>% month()
+  day   <- date %>% yday()
+  
+  bm_files_df <- create_dataset_name_df(product_id = product_id,
+                                        all = T, 
+                                        years = year,
+                                        months = month,
+                                        days = day)
   
   # Intersecting tiles ---------------------------------------------------------
   # Remove grid along edges, which causes st_intersects to fail

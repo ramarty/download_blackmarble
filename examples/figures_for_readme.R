@@ -4,13 +4,20 @@ library(ggplot2)
 source("https://raw.githubusercontent.com/ramarty/download_blackmarble/main/R/download_blackmarble.R")
 
 # Setup ------------------------------------------------------------------------
-roi_sf <- getData('GADM', country='GHA', level=0) %>% st_as_sf()
+bearer <- "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJBUFMgT0F1dGgyIEF1dGhlbnRpY2F0b3IiLCJpYXQiOjE2NzY1Nzc5NzksIm5iZiI6MTY3NjU3Nzk3OSwiZXhwIjoxNjkyMTI5OTc5LCJ1aWQiOiJyYW1hcnR5IiwiZW1haWxfYWRkcmVzcyI6InJhbWFydHlAZW1haWwud20uZWR1IiwidG9rZW5DcmVhdG9yIjoicmFtYXJ0eSJ9.I2mL5S3JXg0p9S9nOPHF9_xyLT7CilOdqi2DgsF1GGc"
+
+roi_sf <- getData('GADM', country='LBN', level=0) %>% st_as_sf()
 product_id <- "VNP46A3"
 year <- 2018
 month <- 5
 day <- 1
 
 # Testing ----------------------------------------------------------------------
+r_monthly <- bm_raster(roi_sf = roi_sf,
+                       product_id = "VNP46A1",
+                       date = "2021-01-01",
+                       bearer = bearer)
+
 r_monthly <- bm_raster(roi_sf = roi_sf,
                        product_id = "VNP46A3",
                        date = seq.Date(from = ymd("2021-01-01"), to = ymd("2021-02-01"), by = "month"),
