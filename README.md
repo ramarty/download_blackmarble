@@ -1,8 +1,16 @@
 # Download Nighttime Lights Black Marble Data
 
+* [Overview](#overview)
+* [Installation](#installation)
+* [Bearer Token](#token)
+* [Quick Start](#quickstart)
+* [bm_raster() Function](#function)
+
+## Overview <a name="overview"></a>
+
 This package provides functions to download nighttime lights [Black Marble](https://blackmarble.gsfc.nasa.gov/) data. Black Marble data is downloaded from the [NASA LAADS Archive](https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/5000/VNP46A3/). However, downloading data for specific regions for a long time period from the NASA LAADS Archive can be time consuming. This package automates the process of (1) downloading data from the NASA LAADS Archive, (2) converting files from H5 files to geotiff files, and (3) mosiacing files together (when needed).
 
-## Installation
+## Installation <a name="installation">
 
 Eventually the package will be available via `devtools`; for now, load the packages using the below code.
 
@@ -10,21 +18,21 @@ Eventually the package will be available via `devtools`; for now, load the packa
 INSTALL_PACKAGES <- F
 
 if(INSTALL_PACKAGES){}
-install.packages("purrr")
-install.packages("furrr")
-install.packages("stringr")
-install.packages("raster")
-install.packages("dplyr")
-install.packages("sf")
-install.packages("lubridate")
-install.packages("BiocManager")
-BiocManager::install("rhdf5")
+  install.packages("purrr")
+  install.packages("furrr")
+  install.packages("stringr")
+  install.packages("raster")
+  install.packages("dplyr")
+  install.packages("sf")
+  install.packages("lubridate")
+  install.packages("BiocManager")
+  BiocManager::install("rhdf5")
 }
 
 source("https://raw.githubusercontent.com/ramarty/download_blackmarble/main/R/download_blackmarble.R")
 ```
 
-## Bearer Token
+## Bearer Token <a name="token">
 
 The function requires using a **Bearer Token**; to obtain a token, follow the below steps:
 
@@ -33,9 +41,9 @@ The function requires using a **Bearer Token**; to obtain a token, follow the be
 3. Click "See wget Download Command" (bottom near top, in the middle)
 4. After clicking, you will see text that can be used to download data. The "Bearer" token will be a long string in red.
 
-## Quickstart
+## Quickstart <a name="quickstart">
 
-### bm_raster() function
+### bm_raster() Function <a name="function">
 
 The primary function in the package is `bm_raster`, which produces a raster of black marble nighttime lights. It can produce rasters from the following Black Marble products:
 
@@ -50,10 +58,10 @@ The function takes the following arguments:
  
 * `roi_sf`: Region of interest; sf polygon. Must be in the [WGS 84 (epsg:4326)](https://epsg.io/4326) coordinate reference system.
 * `product_id`: Either: `VNP46A1`, `VNP46A2`, `VNP46A3`, or `VNP46A4`.
-* `date`: Date of raster data. For `VNP46A1` and `VNP46A2` (daily data), a date (eg, `"2021-10-03`). For `VNP46A3` (monthly data), a date or year-month (e.g., (a) `"2021-10-01`, where the day will be ignored, or (b) `"2021-10`). For `VNP46A4` (annual data), year or date  (e.g., (a) `"2021-10-01`, where the month and day will be ignored, or (b) `"2021`).
+* `date`: Date of raster data. For `VNP46A1` and `VNP46A2` (daily data), a date (eg, `"2021-10-03`). For `VNP46A3` (monthly data), a date or year-month (e.g., (a) `"2021-10-01`, where the day will be ignored, or (b) `"2021-10`). For `VNP46A4` (annual data), year or date  (e.g., (a) `"2021-10-01`, where the month and day will be ignored, or (b) `"2021`). Entering one date will produce a raster. Entering multiple dates will produce a raster stack.
 * `bearer`: NASA bearer token. 
 
-### Make raster of nighttime lights
+### Make raster of nighttime lights <a name="raster">
 
 The below example shows making daily, monthly, and annual rasters of nighttime
 lights for Ghana.
@@ -71,48 +79,48 @@ roi_sf <- getData('GADM', country='GHA', level=0) %>% st_as_sf()
 #### Make Rasters
 ### Daily data: raster for February 5, 2021
 r_20210205 <- bm_raster(roi_sf = roi_sf,
-                            product_id = "VNP46A2",
-                            date = "2021-02-05",
-                            bearer = bearer)
+                        product_id = "VNP46A2",
+                        date = "2021-02-05",
+                        bearer = bearer)
   
 ### Monthly data: raster for October 2021
 r_202110 <- bm_raster(roi_sf = roi_sf,
-                          product_id = "VNP46A3",
-                          date = "2021-10-01", # The day is ignored
-                          bearer = bearer)
+                      product_id = "VNP46A3",
+                      date = "2021-10-01", # The day is ignored
+                      bearer = bearer)
 
 ### Annual data: raster for 2021
 r_2021 <- bm_raster(roi_sf = roi_sf,
-                        product_id = "VNP46A4",
-                        date = 2021,
-                        bearer = bearer)
+                    product_id = "VNP46A4",
+                    date = 2021,
+                    bearer = bearer)
 ```
 
-### Make raster stack of nighttime lights across multiple time periods
+### Make raster stack of nighttime lights across multiple time periods <a name="stack">
 
 To extract data for multiple time periods, add multiple time periods to `date`. The function will return a raster stack, where each raster band corresponds to a different date. The below code provides examples getting data across multiple days, months, and years.
 
 ```r
 #### Daily data in March 2021
 r_monthly <- bm_raster(roi_sf = roi_sf,
-                          product_id = "VNP46A3",
-                          date = seq.Date(from = ymd("2021-03-01"), to = ymd("2021-03-31"), by = "day"),
-                          bearer = bearer)
+                       product_id = "VNP46A3",
+                       date = seq.Date(from = ymd("2021-03-01"), to = ymd("2021-03-31"), by = "day"),
+                       bearer = bearer)
                           
 #### Monthly aggregated data in 2021 and 2022
 r_monthly <- bm_raster(roi_sf = roi_sf,
-                          product_id = "VNP46A3",
-                          date = seq.Date(from = ymd("2021-01-01"), to = ymd("2022-12-01"), by = "month"),
-                          bearer = bearer)
+                       product_id = "VNP46A3",
+                       date = seq.Date(from = ymd("2021-01-01"), to = ymd("2022-12-01"), by = "month"),
+                       bearer = bearer)
                           
 #### Yearly aggregated data in 2012 and 2021
 r_annual <- bm_raster(roi_sf = roi_sf,
-                          product_id = "VNP46A4",
-                          date = 2012:2021,
-                          bearer = bearer)
+                      product_id = "VNP46A4",
+                      date = 2012:2021,
+                      bearer = bearer)
 ```
 
-### Map of nighttime lights
+### Map of nighttime lights <a name="map">
 
 Using one of the rasters, we can make a map of nighttime lights
 
@@ -153,7 +161,7 @@ p <- ggplot() +
 <img src="man/figures/ntl_gha.png" alt="Nighttime Lights Map" width="800"/>
 </p>
 
-### Trends over time
+### Trends over time <a name="trends">
 
 We can use multiple rasters over time to observe changes in nighttime lights over time. The below code leverages the [`exactextractr`](https://github.com/isciences/exactextractr) package to summarize annual nighttime lights to Ghana's first administrative division.
 
