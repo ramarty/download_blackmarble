@@ -2,9 +2,13 @@
 
 * [Overview](#overview)
 * [Installation](#installation)
-* [Bearer Token](#token)
-* [Quick Start](#quickstart)
-  * [bm_raster() Function](#function)
+* [Bearer token](#token)
+* [Quick start](#quickstart)
+  * [bm_raster() function](#function)
+  * [Make raster](#raster)
+  * [Make raster stack across multipel time periods](#stack)
+  * [Make map](#map)
+  * [Make figure of trends in nighttime lights](#trends)
 
 ## Overview <a name="overview"></a>
 
