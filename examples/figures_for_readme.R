@@ -4,7 +4,6 @@ library(ggplot2)
 source("https://raw.githubusercontent.com/ramarty/download_blackmarble/main/R/download_blackmarble.R")
 
 # Setup ------------------------------------------------------------------------
-bearer <- "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJBUFMgT0F1dGgyIEF1dGhlbnRpY2F0b3IiLCJpYXQiOjE2NzY1Nzc5NzksIm5iZiI6MTY3NjU3Nzk3OSwiZXhwIjoxNjkyMTI5OTc5LCJ1aWQiOiJyYW1hcnR5IiwiZW1haWxfYWRkcmVzcyI6InJhbWFydHlAZW1haWwud20uZWR1IiwidG9rZW5DcmVhdG9yIjoicmFtYXJ0eSJ9.I2mL5S3JXg0p9S9nOPHF9_xyLT7CilOdqi2DgsF1GGc"
 roi_sf <- getData('GADM', country='GHA', level=0) %>% st_as_sf()
 product_id <- "VNP46A3"
 year <- 2018
@@ -48,4 +47,48 @@ p <- ggplot() +
 ggsave(p,
        filename = file.path("~/Documents/Github/download_blackmarble/man/figures/ntl_gha.png"),
        height = 5, width = 6)
+
+# Extract timeseries -----------------------------------------------------------
+
+library(exactextractr)
+library(ggplot2)
+
+#### Polygons on Ghana
+# Load both country and admin 1 level. Country-level is needed as bm_raster() requires
+# a polygon that is just one row.
+gha_0_sf <- getData('GADM', country='LBN', level=0) %>% st_as_sf()
+gha_1_sf <- getData('GADM', country='LBN', level=1) %>% st_as_sf()
+
+gha_ntl_df <- map_df(2012:2021, function(year){
+  
+  r <- bm_raster(roi_sf = gha_0_sf,
+                 product_id = "VNP46A4",
+                 year = year,
+                 bearer = bearer)
+  
+  gha_1_sf$ntl <- exact_extract(r, gha_1_sf, 'mean', progress = FALSE)
+  gha_1_sf$year <- year
+  gha_1_sf$geometry <- NULL # We only want data; remove geometry to make object smaller
+  
+  return(gha_1_sf)
+})
+
+p <- gha_ntl_df %>%
+  ggplot() +
+  geom_col(aes(x = year,
+               y = ntl),
+           fill = "darkorange") +
+  facet_wrap(~NAME_1) +
+  labs(x = NULL,
+       y = "NTL Luminosity",
+       title = "Ghana Admin Level 1: Annual Average Nighttime Lights") +
+  theme_minimal() +
+  theme(strip.text = element_text(face = "bold")) 
+
+ggsave(p,
+       filename = file.path("~/Documents/Github/download_blackmarble/man/figures/ntl_trends_gha.png"),
+       height = 5, width = 6)
+
+
+
 

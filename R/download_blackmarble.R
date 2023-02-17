@@ -11,6 +11,7 @@ library(rhdf5)
 library(raster)
 library(dplyr)
 library(sf)
+library(lubridate)
 
 month_start_day_to_month <- function(x){
   
@@ -106,7 +107,7 @@ file_to_raster <- function(f){
     names(h5_data$HDFEOS$GRIDS$VNP_Grid_DNB$`Data Fields`)
     h5_data$HDFEOS$GRIDS$VNP_Grid_DNB$`Data Fields`$QF_Cloud_Mask %>% as.vector() %>% table()
     out <- h5_data$HDFEOS$GRIDS$VNP_Grid_DNB$`Data Fields`$`Gap_Filled_DNB_BRDF-Corrected_NTL`
-  
+    
   } else{
     lat <- h5_data$HDFEOS$GRIDS$VIIRS_Grid_DNB_2d$`Data Fields`$lat
     lon <- h5_data$HDFEOS$GRIDS$VIIRS_Grid_DNB_2d$`Data Fields`$lon
@@ -118,7 +119,7 @@ file_to_raster <- function(f){
     xMax <- max(lon) %>% round()
     yMax <- max(lat) %>% round()
   }
-
+  
   ## Metadata
   nRows      <- nrow(out)
   nCols      <- ncol(out)
@@ -401,9 +402,9 @@ r_big_mosaic <- function(r_list){
 #' 
 #' @param roi_sf Region of interest; sf polygon.
 #' @product_id Either `VNP46A1`, `VNP46A2`, `VNP46A3`, or `VNP46A4`. `VNP46A1` is daily data, `VNP46A2` is daily data with additional corrections `VNP46A3` is monthly data, and `VNP46A4` is annual data. For more information, see [here](https://blackmarble.gsfc.nasa.gov/). 
-#' @year Year of raster data. Always required.
+#' @year Year of raster data. Required for product ID `VNP46A3` (monthly data) and `VNP46A4` (annual data); otherwise, ignored.
 #' @month Month of raster data (values between `1-12`). Required for product ID `VNP46A3` (monthly data); otherwise, ignored.
-#' @day Day of raster data (values between `1-366`). Required for product IDs `VNP46A1` and `VNP46A2` (daily data); otherwise, ignored.
+#' @date Date of raster data (e.g. `"2021-03-01"`). Required for product IDs `VNP46A1` and `VNP46A2` (daily data); otherwise, ignored.
 #' @bearer NASA bearer token. For instructions on how to create a bearer token, see [here](https://github.com/ramarty/download_blackmarble)
 #' 
 #' @return Raster
@@ -442,7 +443,7 @@ bm_raster <- function(roi_sf,
                       product_id,
                       year = NULL,
                       month = NULL,
-                      day = NULL,
+                      date = NULL,
                       bearer){
   
   # Checks ---------------------------------------------------------------------
@@ -459,6 +460,10 @@ bm_raster <- function(roi_sf,
   
   # Load dataframe of tiles ----------------------------------------------------
   if(product_id %in% c("VNP46A1", "VNP46A2")){
+    
+    day <- yday(date)
+    year <- date %>% year()
+    
     bm_files_df <- read.csv(paste0("https://raw.githubusercontent.com/ramarty/download_blackmarble/main/data/",
                                    product_id,
                                    "/", year, "/",
@@ -495,15 +500,21 @@ bm_raster <- function(roi_sf,
     download_raster(name_i, bearer)
   })
   
-  #r <- r_big_mosaic(r_list)
-  
-  #r_listr <<- r_list
-  
-  ## Mosaic rasters together
-  names(r_list)    <- NULL
-  r_list$fun       <- max
-  
-  r <- do.call(raster::mosaic, r_list) 
+  if(length(r_list) == 1){
+    r <- r_list[[1]]
+  } else{
+    
+    #r <- r_big_mosaic(r_list)
+    
+    #r_listr <<- r_list
+    
+    ## Mosaic rasters together
+    names(r_list)    <- NULL
+    r_list$fun       <- max
+    
+    r <- do.call(raster::mosaic, r_list) 
+    
+  }
   
   ## Crop
   r <- r %>% crop(roi_sf)
