@@ -8,7 +8,7 @@ Create Georeferenced Rasters of Nighttime Lights from [NASA Black Marble data](h
 * [Quick start](#quickstart)
   * [bm_raster() function](#function)
   * [Make raster](#raster)
-  * [Make raster stack across multipel time periods](#stack)
+  * [Make raster stack across multiple time periods](#stack)
   * [Make map](#map)
   * [Make figure of trends in nighttime lights](#trends)
 
