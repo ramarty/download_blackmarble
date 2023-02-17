@@ -1,6 +1,6 @@
 # Download Nighttime Lights Black Marble Data
 
-Create Georeferenced Rasters of Nighttime Lights from [NASA Black Marble data](https://blackmarble.gsfc.nasa.gov/)
+Create Georeferenced Rasters of Nighttime Lights from [NASA Black Marble data](https://blackmarble.gsfc.nasa.gov/). **NOTE: This package is under active develop and is subject to change**
 
 * [Overview](#overview)
 * [Installation](#installation)
