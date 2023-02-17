@@ -4,7 +4,7 @@
 * [Installation](#installation)
 * [Bearer Token](#token)
 * [Quick Start](#quickstart)
-* [bm_raster() Function](#function)
+  * [bm_raster() Function](#function)
 
 ## Overview <a name="overview"></a>
 
