@@ -72,7 +72,8 @@ pad3 <- function(x){
 pad3 <- Vectorize(pad3)
 
 
-file_to_raster <- function(f){
+file_to_raster <- function(f, 
+                           variable){
   # Converts h5 file to raster.
   # ARGS
   # --f: Filepath to h5 file
@@ -267,11 +268,10 @@ create_dataset_name_df <- function(product_id,
   return(files_df)
 }
 
-download_raster <- function(file_name, bearer){
-  
-  temp_dir <- tempdir()
-  
-  unlink(file.path(temp_dir, product_id), recursive = T)
+download_raster <- function(file_name, 
+                            temp_dir,
+                            variable,
+                            bearer){
   
   year       <- file_name %>% substring(10,13)
   day        <- file_name %>% substring(14,16)
@@ -287,10 +287,8 @@ download_raster <- function(file_name, bearer){
   
   system(wget_command)
   
-  r <- file_to_raster(file.path(temp_dir, product_id, year, day, file_name))
+  r <- file_to_raster(file.path(temp_dir, product_id, year, day, file_name), variable)
   
-  unlink(file.path(temp_dir, product_id), recursive = T)
-
   return(r)
 }
 
@@ -306,118 +304,126 @@ download_raster <- function(file_name, bearer){
 #' @param mask Mask final raster to `loc_sf`.
 #'
 #' @export
-bm_mk_raster <- function(loc_sf = NULL,
-                         tile_ids = NULL,
-                         product_id,
-                         time,
-                         bearer,
-                         mosaic = T,
-                         mask = T){
-  
-  # Checks ---------------------------------------------------------------------
-  if(is.null(loc_sf) & is.null(tile_ids)){
-    stop("Either loc_sf or tile_ids must be specified")
-  }
-  
-  if(!is.null(loc_sf) & !is.null(tile_ids)){
-    stop("Both loc_sf and tile_ids cannot be specified; only one can be specified")
-  }
-  
-  if(!is.null(loc_sf)){
-    if(nrow(loc_sf) > 1){
-      stop(paste0("loc_sf is ", nrow(loc_sf), " rows; must be 1 row. Dissolve polygon into 1 row."))
-    }
-  }
-  
-  # Determine grids to download ------------------------------------------------
-  if(is.null(loc_sf)){
-    
-    tile_ids_rx <- tile_ids %>% paste(collapse = "|")
-    
-  } else{
-    grid_sf <- read_sf("https://raw.githubusercontent.com/ramarty/download_blackmarble/main/data/blackmarbletiles.geojson")
-    
-    inter <- st_intersects(grid_sf, loc_sf, sparse = F) %>% as.vector()
-    grid_use_sf <- grid_sf[inter,]
-    
-    tile_ids_rx <- grid_use_sf$TileID %>% paste(collapse = "|")
-  }
-  
-  # Determine tiles to download ------------------------------------------------
-  tiles_df <- read.csv(paste0("https://raw.githubusercontent.com/ramarty/download_blackmarble/main/data/",product_id,".csv"))
-  tiles_df <- tiles_df[tiles_df$name %>% str_detect(tile_ids_rx),]
-  
-  ## Create year_month variable
-  if(product_id == "VNP46A3"){
-    
-    tiles_df <- tiles_df %>%
-      mutate(day = day %>% pad3(),
-             month = day %>% month_start_day_to_month(),
-             time = paste0(year, "-", month))
-  }
-  
-  if(product_id == "VNP46A4"){
-    tiles_df <- tiles_df %>%
-      mutate(time = year)
-  }
-  
-  # Download data --------------------------------------------------------------
-  tiles_download_df <- tiles_df[tiles_df$time %in% time,]
-  
-  r_list <- lapply(tiles_download_df$name, function(name_i){
-    download_raster(name_i, bearer)
-  })
-  
-  # Mosaic/mask ----------------------------------------------------------------
-  if(mosaic){
-    
-    ## If just one file, use the one file; otherwise, mosaic
-    if(length(r_list) == 1){
-      r_out <- r_list[[1]]
-    } else{
-      
-      names(r_list)    <- NULL
-      r_list$fun       <- max
-      
-      r_out <- do.call(raster::mosaic, r_list) 
-    }
-    
-    ## Mask (only mask if mosaiced)
-    if(mask){
-      r_out <- r_out %>% crop(loc_sf) %>% mask(loc_sf)
-    }
-  } else{
-    r_out <- r_list
-  }
-  
-  return(r_out)
-}
-
-r_big_mosaic <- function(r_list){
-  
-  ## Make template raster
-  r_list_temp <- r_list
-  
-  names(r_list_temp)    <- NULL
-  r_list_temp$tolerance <- 9999999
-  
-  r_temp <- do.call(raster::merge, r_list_temp)
-  r_temp[] <- NA
-  
-  ## Resample to template
-  for(i in 1:length(r_list)) r_list[[i]] <- raster::resample(r_list[[i]], 
-                                                             r_temp, 
-                                                             method = "ngb")
-  
-  ## Mosaic rasters together
-  names(r_list)    <- NULL
-  r_list$fun       <- max
-  r_list$tolerance <- 999
-  
-  r <- do.call(raster::mosaic, r_list) 
-  
-  return(r)
-}
+# bm_mk_raster <- function(loc_sf = NULL,
+#                          tile_ids = NULL,
+#                          product_id,
+#                          time,
+#                          bearer,
+#                          mosaic = T,
+#                          mask = T){
+#   
+#   # Checks ---------------------------------------------------------------------
+#   if(is.null(loc_sf) & is.null(tile_ids)){
+#     stop("Either loc_sf or tile_ids must be specified")
+#   }
+#   
+#   if(!is.null(loc_sf) & !is.null(tile_ids)){
+#     stop("Both loc_sf and tile_ids cannot be specified; only one can be specified")
+#   }
+#   
+#   if(!is.null(loc_sf)){
+#     if(nrow(loc_sf) > 1){
+#       stop(paste0("loc_sf is ", nrow(loc_sf), " rows; must be 1 row. Dissolve polygon into 1 row."))
+#     }
+#   }
+#   
+#   # Determine grids to download ------------------------------------------------
+#   if(is.null(loc_sf)){
+#     
+#     tile_ids_rx <- tile_ids %>% paste(collapse = "|")
+#     
+#   } else{
+#     grid_sf <- read_sf("https://raw.githubusercontent.com/ramarty/download_blackmarble/main/data/blackmarbletiles.geojson")
+#     
+#     inter <- st_intersects(grid_sf, loc_sf, sparse = F) %>% as.vector()
+#     grid_use_sf <- grid_sf[inter,]
+#     
+#     tile_ids_rx <- grid_use_sf$TileID %>% paste(collapse = "|")
+#   }
+#   
+#   # Determine tiles to download ------------------------------------------------
+#   tiles_df <- read.csv(paste0("https://raw.githubusercontent.com/ramarty/download_blackmarble/main/data/",product_id,".csv"))
+#   tiles_df <- tiles_df[tiles_df$name %>% str_detect(tile_ids_rx),]
+#   
+#   ## Create year_month variable
+#   if(product_id == "VNP46A3"){
+#     
+#     tiles_df <- tiles_df %>%
+#       mutate(day = day %>% pad3(),
+#              month = day %>% month_start_day_to_month(),
+#              time = paste0(year, "-", month))
+#   }
+#   
+#   if(product_id == "VNP46A4"){
+#     tiles_df <- tiles_df %>%
+#       mutate(time = year)
+#   }
+#   
+#   # Download data --------------------------------------------------------------
+#   tiles_download_df <- tiles_df[tiles_df$time %in% time,]
+#   
+#   temp_dir <- tempdir()
+#   
+#   unlink(file.path(temp_dir), recursive = T)
+#   unlink(file.path(temp_dir, product_id), recursive = T)
+#   
+#   r_list <- lapply(tiles_download_df$name, function(name_i){
+#     download_raster(name_i, temp_dir, bearer)
+#   })
+#   
+#   unlink(file.path(temp_dir), recursive = T)
+#   unlink(file.path(temp_dir, product_id), recursive = T)
+#   
+#   # Mosaic/mask ----------------------------------------------------------------
+#   if(mosaic){
+#     
+#     ## If just one file, use the one file; otherwise, mosaic
+#     if(length(r_list) == 1){
+#       r_out <- r_list[[1]]
+#     } else{
+#       
+#       names(r_list)    <- NULL
+#       r_list$fun       <- max
+#       
+#       r_out <- do.call(raster::mosaic, r_list) 
+#     }
+#     
+#     ## Mask (only mask if mosaiced)
+#     if(mask){
+#       r_out <- r_out %>% crop(loc_sf) %>% mask(loc_sf)
+#     }
+#   } else{
+#     r_out <- r_list
+#   }
+#   
+#   return(r_out)
+# }
+# 
+# r_big_mosaic <- function(r_list){
+#   
+#   ## Make template raster
+#   r_list_temp <- r_list
+#   
+#   names(r_list_temp)    <- NULL
+#   r_list_temp$tolerance <- 9999999
+#   
+#   r_temp <- do.call(raster::merge, r_list_temp)
+#   r_temp[] <- NA
+#   
+#   ## Resample to template
+#   for(i in 1:length(r_list)) r_list[[i]] <- raster::resample(r_list[[i]], 
+#                                                              r_temp, 
+#                                                              method = "ngb")
+#   
+#   ## Mosaic rasters together
+#   names(r_list)    <- NULL
+#   r_list$fun       <- max
+#   r_list$tolerance <- 999
+#   
+#   r <- do.call(raster::mosaic, r_list) 
+#   
+#   return(r)
+# }
 
 
 #' Make Black Marble Raster
@@ -500,12 +506,13 @@ bm_raster <- function(roi_sf,
     
     out <- tryCatch(
       {
-
+        
         r <- bm_raster_i(roi_sf = roi_sf,
                          product_id = product_id,
                          date = date_i,
                          bearer = bearer,
                          variable = variable)
+        
         names(r) <- paste0("t", date_i %>% str_replace_all("-", "_") %>% substring(1,7))
         
         return(r)
@@ -587,8 +594,12 @@ bm_raster_i <- function(roi_sf,
   tile_ids_rx <- grid_use_sf$TileID %>% paste(collapse = "|")
   bm_files_df <- bm_files_df[bm_files_df$name %>% str_detect(tile_ids_rx),]
   
+  temp_dir <- tempdir()
+  
+  unlink(file.path(temp_dir, product_id), recursive = T)
+  
   r_list <- lapply(bm_files_df$name, function(name_i){
-    download_raster(name_i, bearer)
+    download_raster(name_i, temp_dir, variable, bearer)
   })
   
   if(length(r_list) == 1){
@@ -609,6 +620,8 @@ bm_raster_i <- function(roi_sf,
   
   ## Crop
   r <- r %>% crop(roi_sf)
+  
+  unlink(file.path(temp_dir, product_id), recursive = T)
   
   return(r)
 }
