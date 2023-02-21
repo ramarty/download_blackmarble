@@ -271,6 +271,8 @@ download_raster <- function(file_name, bearer){
   
   temp_dir <- tempdir()
   
+  unlink(file.path(temp_dir, product_id), recursive = T)
+  
   year       <- file_name %>% substring(10,13)
   day        <- file_name %>% substring(14,16)
   product_id <- file_name %>% substring(1,7)
@@ -280,14 +282,15 @@ download_raster <- function(file_name, bearer){
                          " --header 'Authorization: Bearer ",
                          bearer,
                          "' -P ",
-                         temp_dir, "/")
+                         temp_dir, 
+                         "/") #                          " --no-if-modified-since"
   
   system(wget_command)
   
   r <- file_to_raster(file.path(temp_dir, product_id, year, day, file_name))
   
   unlink(file.path(temp_dir, product_id), recursive = T)
-  
+
   return(r)
 }
 
@@ -497,7 +500,7 @@ bm_raster <- function(roi_sf,
     
     out <- tryCatch(
       {
-        
+
         r <- bm_raster_i(roi_sf = roi_sf,
                          product_id = product_id,
                          date = date_i,

@@ -13,6 +13,43 @@ month <- 5
 day <- 1
 
 # Testing ----------------------------------------------------------------------
+roi_sf <- getData('GADM', country='VUT', level=0) %>% st_as_sf()
+
+r2020 <- bm_raster(roi_sf = roi_sf,
+                   product_id = "VNP46A4",
+                   date = 2020,
+                   bearer = bearer)
+
+writeRaster(r2020, "~/Desktop/vut/vut_2020a.tif")
+
+
+
+
+
+r2021 <- bm_raster(roi_sf = roi_sf,
+                   product_id = "VNP46A4",
+                   date = 2021,
+                   bearer = bearer)
+
+writeRaster(r2021, "~/Desktop/vut/vut_2021.tif")
+
+
+
+
+
+r <- bm_raster(roi_sf = roi_sf,
+               product_id = "VNP46A4",
+               date = 2012:2021,
+               bearer = bearer)
+
+writeRaster(r, "~/Desktop/vut/vut_2012_2021.tif")
+
+
+a <- brick("~/Desktop/vut/vut_2012_2021.tif")
+
+exact_extract(a, roi_sf, "mean")
+
+
 r_monthly <- bm_raster(roi_sf = roi_sf,
                        product_id = "VNP46A1",
                        date = "2021-01-01",
@@ -24,15 +61,15 @@ r_monthly <- bm_raster(roi_sf = roi_sf,
                        bearer = bearer)
 
 month = c("2021-10-01", "9999", "2021-11-01")
- 
+
 if(product_id == "VNP46A3"){
   # TRYCATCH
   r_list <- lapply(month, function(month_i){
     
     r <- bm_raster(roi_sf = roi_sf,
-              product_id = "VNP46A3",
-              month = month_i,
-              bearer = bearer)
+                   product_id = "VNP46A3",
+                   month = month_i,
+                   bearer = bearer)
     
     names(r) <- paste0("t", month_i %>% str_replace_all("-", "_") %>% substring(1,7))
     

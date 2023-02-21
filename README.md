@@ -80,7 +80,7 @@ bearer <- "BEARER-TOKEN-HERE"
 
 # Define region of interest (roi). The roi must be (1) an sf polygon and (2)
 # in the WGS84 (epsg:4326) coordinate reference system. Here, we use the 
-# getData function to load a polygon of Kenya
+# getData function to load a polygon of Ghana
 roi_sf <- getData('GADM', country='GHA', level=0) %>% st_as_sf()
 
 #### Make Rasters
